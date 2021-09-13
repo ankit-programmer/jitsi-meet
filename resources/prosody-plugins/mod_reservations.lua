@@ -344,6 +344,7 @@ function RoomReservation:call_api_create_conference()
         name = self:get_room_name();
         start_time = to_java_date_string(self.meta.start_time);
         mail_owner = self.meta.mail_owner;
+        token = session.auth_token;
     }
 
     local http_options = {
