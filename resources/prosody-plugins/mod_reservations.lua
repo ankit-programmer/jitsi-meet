@@ -334,7 +334,13 @@ function RoomReservation:reply_with_error(event, error_code, error_text)
                 :tag("reservation-error", { xmlns="http://jitsi.org/protocol/focus", ["error-code"]=tostring(error_code) })
     );
 end
-
+-- Initialize the session on authentication hook - ANKIT
+local session;
+module:hook("authentication-success",function(event)
+session = event.session;
+end
+);
+    
 --- Initiates non-blocking API call to validate reservation
 function RoomReservation:call_api_create_conference()
     self.api_call_triggered = true;
@@ -344,7 +350,7 @@ function RoomReservation:call_api_create_conference()
         name = self:get_room_name();
         start_time = to_java_date_string(self.meta.start_time);
         mail_owner = self.meta.mail_owner;
-        token = session.auth_token;
+        token = session.auth_token; -- Add token to the reservation request body - ANKIT
     }
 
     local http_options = {
