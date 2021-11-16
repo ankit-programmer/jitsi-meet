@@ -98,4 +98,3 @@ module:hook("muc-occupant-joined", function (event)
     module:log(LOGLEVEL, "affiliation: %s", affiliation)
     room:set_affiliation(true, occupant.bare_jid, affiliation)
 end)
-© 2021 GitHub, Inc.
