@@ -67,6 +67,25 @@ local URL_EVENT_OCCUPANT_LEFT = api_prefix..'/events/occupant/left';
 -- Send all events to same endpoint
 local CONSUMER_URL = api_prefix;
 
+-- Getting Server Id - Added By Ankit
+local SERVER_ID = "";
+
+local function get_server_id(response_body, response_code)
+    SERVER_ID = response_body;
+    module:log("info","SERVER_ID : %s",SERVER_ID);
+end
+local google_url = "http://metadata.google.internal/computeMetadata/v1/instance/id";
+local options = {
+    headers = {
+        ["Metadata-Flavor"] = "Google"
+    };
+
+    method = "GET";
+}
+http.request(google_url,options,get_server_id);
+
+
+
 --- Start non-blocking HTTP call
 -- @param url URL to call
 -- @param options options table as expected by net.http where we provide optional headers, body or method.
@@ -225,6 +244,7 @@ function room_created(event)
             ['roomName'] = room_data.room_name;
             ['roomJid'] = room_data.room_jid;
             ['openedAt'] = room_data.created_at;
+            ['serverId'] = SERVER_ID;
         });
     })
 end
@@ -256,6 +276,7 @@ function room_destroyed(event)
             ['openedAt'] = room_data.created_at;
             ['closedAt'] = destroyed_at;
             ['occupants'] = room_data:get_occupant_array();
+            ['serverId'] = SERVER_ID;
         })
     })
 end
@@ -291,6 +312,7 @@ function occupant_joined(event)
             ['roomName'] = room_data.room_name;
             ['roomJid'] = room_data.room_jid;
             ['occupant'] = occupant_data;
+            ['serverId'] = SERVER_ID;
         })
     })
 
@@ -323,6 +345,7 @@ function occupant_left(event)
             ['roomName'] = room_data.room_name;
             ['roomJid'] = room_data.room_jid;
             ['occupant'] = occupant_data;
+            ['serverId'] = SERVER_ID;
         })
     })
 end
