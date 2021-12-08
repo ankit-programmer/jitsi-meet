@@ -16,6 +16,7 @@
         cursor: pointer;
         display: inline-block;
         font-size: 14px;
+        font-weight: 600;
         line-height: 24px;
         margin-bottom: 16px;
         padding: 7px 16px;
@@ -128,9 +129,20 @@
 
             #new-toolbox {
                 bottom: 0;
-                margin-bottom: 16px;
                 position: relative;
                 transition: none;
+
+                .toolbox-content {
+                    margin-bottom: 4px;
+                }
+
+                .toolbox-content-items {
+                    background: transparent;
+                    box-shadow: none;
+                    display: flex;
+                    justify-content: space-evenly;
+                    padding: 8px 0;
+                }
 
                 .toolbox-content,
                 .toolbox-content-wrapper,
@@ -158,22 +170,44 @@
         }
     }
 
+    // mobile phone landscape
+    @media (max-height: 420px) {
+        flex-direction: row;
+
+        div.content {
+            padding: 16px 16px 0 16px;
+        }
+
+        .con-status {
+            display: none;
+        }
+    }
+
     @media (max-width: 400px) {
         .content {
             padding: 16px;
             width: 100%;
 
+            &-controls {
+                input.field {
+                    font-size: 16px;
+                    padding: 14px 16px;
+                }
+            }
+
             .title {
-                font-size: 20px;
-                line-height: 28px;
-                letter-spacing: -0.012;
-                margin-bottom: 24px;
+                display: none;
             }
         }
 
         .con-status {
-            margin: 16px;
-            width: calc(100% - 32px);
+            margin: 0;
+            width: 100%;
+        }
+
+        .device-status-error {
+            border-radius: 0;
+            margin: 0 -16px;
         }
 
         input.field {
@@ -183,14 +217,8 @@
 
         .action-btn {
             font-size: 16px;
+            margin-bottom: 8px;
             padding: 11px 16px;
-        }
-
-        .toolbox-content-items {
-            border-radius: 0;
-            display: flex;
-            justify-content: space-evenly;
-            padding: 8px 0;
         }
     }
 
@@ -210,8 +238,6 @@
     .avatar {
         text {
             fill: white;
-            font-size: 26px;
-            font-weight: 400;
         }
     }
 
@@ -226,69 +252,4 @@
     align-items: center;
     display: flex;
     justify-content: center;
-}
-
-@mixin icon-container($bg, $fill) {
-    .toggle-button-icon-container {
-        background: $bg;
-
-        svg {
-            fill: $fill
-        }
-    }
-}
-
-.toggle-button {
-    border-radius: 6px;
-    cursor: pointer;
-    color: #fff;
-    font-size: 13px;
-    height: 40px;
-    margin: 0 auto;
-    transition: background 0.16s ease-out;
-
-    @include flex-centered();
-
-    svg {
-        fill: transparent;
-    }
-
-    label {
-        cursor: pointer;
-    }
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.1);
-
-        .toggle-button-icon-container {
-            display: none;
-        }
-    }
-
-    &-container {
-        position: relative;
-
-        @include flex-centered();
-    }
-
-    &-icon-container {
-        border-radius: 50%;
-        left: -22px;
-        padding: 2px;
-        position: absolute;
-    }
-
-    &--toggled {
-        @include icon-container(white, #1C2025);
-
-        &:hover {
-            .toggle-button-icon-container {
-                display: block;
-            }
-        }
-
-        .toggle-button-icon-container {
-            display: block;
-        }
-    }
 }

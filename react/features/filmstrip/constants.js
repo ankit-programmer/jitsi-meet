@@ -81,6 +81,7 @@ export const VIDEO_TEST_EVENTS = [
 
 /**
  * Display mode constant used when video is being displayed on the small video.
+ *
  * @type {number}
  * @constant
  */
@@ -89,6 +90,7 @@ export const DISPLAY_VIDEO = 0;
 /**
  * Display mode constant used when the user's avatar is being displayed on
  * the small video.
+ *
  * @type {number}
  * @constant
  */
@@ -97,6 +99,7 @@ export const DISPLAY_AVATAR = 1;
 /**
  * Display mode constant used when neither video nor avatar is being displayed
  * on the small video. And we just show the display name.
+ *
  * @type {number}
  * @constant
  */
@@ -105,6 +108,7 @@ export const DISPLAY_BLACKNESS_WITH_NAME = 2;
 /**
  * Display mode constant used when video is displayed and display name
  * at the same time.
+ *
  * @type {number}
  * @constant
  */
@@ -113,6 +117,7 @@ export const DISPLAY_VIDEO_WITH_NAME = 3;
 /**
  * Display mode constant used when neither video nor avatar is being displayed
  * on the small video. And we just show the display name.
+ *
  * @type {number}
  * @constant
  */
@@ -120,6 +125,7 @@ export const DISPLAY_AVATAR_WITH_NAME = 4;
 
 /**
  * Maps the display modes to class name that will be applied on the thumbnail container.
+ *
  * @type {Array<string>}
  * @constant
  */
@@ -133,6 +139,7 @@ export const DISPLAY_MODE_TO_CLASS_NAME = [
 
 /**
  * Maps the display modes to string.
+ *
  * @type {Array<string>}
  * @constant
  */
@@ -220,14 +227,6 @@ export const HORIZONTAL_FILMSTRIP_MARGIN = 39;
  * @type {number}
  */
 export const SHOW_TOOLBAR_CONTEXT_MENU_AFTER = 600;
-
-
-/**
- * The ratio for filmstrip self view on mobile portrait mode.
- *
- * @type {number}
- */
-export const MOBILE_FILMSTRIP_PORTRAIT_RATIO = 2.5;
 
 /**
  * The margin for each side of the tile view. Taken away from the available

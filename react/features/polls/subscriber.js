@@ -4,7 +4,7 @@ import { getCurrentConference } from '../base/conference';
 import { JitsiConferenceEvents } from '../base/lib-jitsi-meet';
 import { StateListenerRegistry } from '../base/redux';
 import {
-    NOTIFICATION_TIMEOUT,
+    NOTIFICATION_TIMEOUT_TYPE,
     NOTIFICATION_TYPE,
     showNotification
 } from '../notifications';
@@ -44,6 +44,7 @@ const parsePollData = (pollData): Poll | null => {
     }
 
     return {
+        changingVote: false,
         senderId,
         senderName,
         question,
@@ -63,6 +64,7 @@ StateListenerRegistry.register(
                     const { question, answers, pollId, senderId, senderName } = data;
 
                     const poll = {
+                        changingVote: false,
                         senderId,
                         senderName,
                         showResults: false,
@@ -81,7 +83,7 @@ StateListenerRegistry.register(
                         appearance: NOTIFICATION_TYPE.NORMAL,
                         titleKey: 'polls.notification.title',
                         descriptionKey: 'polls.notification.description'
-                    }, NOTIFICATION_TIMEOUT));
+                    }, NOTIFICATION_TIMEOUT_TYPE.SHORT));
                     break;
 
                 }

@@ -6,6 +6,8 @@ import { getParticipantCountWithFake } from '../base/participants';
 import { toState } from '../base/redux';
 import { isLocalVideoTrackDesktop } from '../base/tracks';
 
+export * from './functions.any';
+
 const WIDTH = {
     FIT_9_ICONS: 560,
     FIT_8_ICONS: 500,
@@ -60,12 +62,15 @@ export function getMovableButtons(width: number): Set<string> {
  */
 export function isToolboxVisible(stateful: Object | Function) {
     const state = toState(stateful);
-    const { alwaysVisible, enabled, visible } = state['features/toolbox'];
+    const { toolbarConfig } = state['features/base/config'];
+    const { alwaysVisible } = toolbarConfig || {};
+    const { enabled, visible } = state['features/toolbox'];
     const participantCount = getParticipantCountWithFake(state);
     const alwaysVisibleFlag = getFeatureFlag(state, TOOLBOX_ALWAYS_VISIBLE, false);
     const enabledFlag = getFeatureFlag(state, TOOLBOX_ENABLED, true);
 
-    return enabledFlag && enabled && (alwaysVisible || visible || participantCount === 1 || alwaysVisibleFlag);
+    return enabledFlag && enabled
+        && (alwaysVisible || visible || participantCount === 1 || alwaysVisibleFlag);
 }
 
 /**
@@ -75,5 +80,9 @@ export function isToolboxVisible(stateful: Object | Function) {
  * @returns {boolean}
  */
 export function isVideoMuteButtonDisabled(state: Object) {
-    return !hasAvailableDevices(state, 'videoInput') || isLocalVideoTrackDesktop(state);
+    const { muted, unmuteBlocked } = state['features/base/media'].video;
+
+    return !hasAvailableDevices(state, 'videoInput')
+        || (unmuteBlocked && Boolean(muted))
+        || isLocalVideoTrackDesktop(state);
 }

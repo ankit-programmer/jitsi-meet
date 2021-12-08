@@ -3,21 +3,16 @@
         width: 100%;
     }
 
-    &-checkbox-container {
-        margin-bottom: 16px;
-        width: 100%;
-        text-align: center;
-    }
-
     &-error {
-        color: white;
         background-color: #E04757;
         border-radius: 6px;
-        padding: 4px;
         box-sizing: border-box;
+        color: white;
+        font-size: 12px;
+        line-height: 16px;
         margin-bottom: 16px;
         margin-top: -8px;
-        font-size: 12px;
+        padding: 4px;
         text-align: center;
         width: 100%;
     }
@@ -26,7 +21,6 @@
 .prejoin-preview {
     &-dropdown-btns {
         padding: 8px 0;
-        width: calc(100% - 48px);
     }
   
     &-dropdown-btn {
@@ -64,8 +58,6 @@
             background: #fff;
             padding: 0;
             position: absolute !important;
-            top: 48px !important;
-            transform: none !important;
             width: 100%;
         }
     }

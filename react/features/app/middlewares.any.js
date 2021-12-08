@@ -1,6 +1,7 @@
 // @flow
 
 import '../analytics/middleware';
+import '../av-moderation/middleware';
 import '../base/conference/middleware';
 import '../base/config/middleware';
 import '../base/jwt/middleware';
@@ -18,6 +19,7 @@ import '../base/sounds/middleware';
 import '../base/testing/middleware';
 import '../base/tracks/middleware';
 import '../base/user-interaction/middleware';
+import '../breakout-rooms/middleware';
 import '../calendar-sync/middleware';
 import '../chat/middleware';
 import '../conference/middleware';

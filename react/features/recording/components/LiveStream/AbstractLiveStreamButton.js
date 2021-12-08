@@ -8,6 +8,7 @@ import {
     isLocalParticipantModerator
 } from '../../../base/participants';
 import { AbstractButton, type AbstractButtonProps } from '../../../base/toolbox/components';
+import { isInBreakoutRoom } from '../../../breakout-rooms/functions';
 import { maybeShowPremiumFeatureDialog } from '../../../jaas/actions';
 import { FEATURES } from '../../../jaas/constants';
 import { getActiveSession } from '../../functions';
@@ -76,7 +77,13 @@ export default class AbstractLiveStreamButton<P: Props> extends AbstractButton<P
      * @returns {void}
      */
     async _handleClick() {
-        const { _isLiveStreamRunning, dispatch } = this.props;
+        const { _isLiveStreamRunning, dispatch, handleClick } = this.props;
+
+        if (handleClick) {
+            handleClick();
+
+            return;
+        }
 
         const dialogShown = await dispatch(maybeShowPremiumFeatureDialog(FEATURES.RECORDING));
 
@@ -159,6 +166,12 @@ export function _mapStateToProps(state: Object, ownProps: Props) {
     if (getActiveSession(state, JitsiRecordingConstants.mode.FILE)) {
         _disabled = true;
         _tooltip = 'dialog.liveStreamingDisabledBecauseOfActiveRecordingTooltip';
+    }
+
+    // disable the button if we are in a breakout room.
+    if (isInBreakoutRoom(state)) {
+        _disabled = true;
+        visible = false;
     }
 
     return {

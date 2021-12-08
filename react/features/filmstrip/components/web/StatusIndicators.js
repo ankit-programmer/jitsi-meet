@@ -54,7 +54,7 @@ type Props = {
 /**
  * React {@code Component} for showing the status bar in a thumbnail.
  *
- * @extends Component
+ * @augments Component
  */
 class StatusIndicators extends Component<Props> {
     /**
@@ -129,11 +129,13 @@ function _mapStateToProps(state, ownProps) {
         isAudioMuted = isRemoteTrackMuted(tracks, MEDIA_TYPE.AUDIO, participantID);
     }
 
+    const { disableModeratorIndicator } = state['features/base/config'];
+
     return {
         _currentLayout: getCurrentLayout(state),
         _showAudioMutedIndicator: isAudioMuted,
         _showModeratorIndicator:
-            !interfaceConfig.DISABLE_FOCUS_INDICATOR && participant && participant.role === PARTICIPANT_ROLE.MODERATOR,
+            !disableModeratorIndicator && participant && participant.role === PARTICIPANT_ROLE.MODERATOR,
         _showScreenShareIndicator: isScreenSharing,
         _showVideoMutedIndicator: isVideoMuted
     };

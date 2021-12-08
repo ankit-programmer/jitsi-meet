@@ -10,7 +10,6 @@ import {
     JitsiConferenceErrors,
     JitsiConferenceEvents
 } from '../base/lib-jitsi-meet';
-import { setActiveModalId } from '../base/modal';
 import {
     getLocalParticipant,
     getParticipantById,
@@ -18,7 +17,6 @@ import {
 } from '../base/participants';
 import { MiddlewareRegistry, StateListenerRegistry } from '../base/redux';
 import { playSound, registerSound, unregisterSound } from '../base/sounds';
-import { openDisplayNamePrompt } from '../display-name';
 import { resetNbUnreadPollsMessages } from '../polls/actions';
 import { ADD_REACTION_MESSAGE } from '../reactions/actionTypes';
 import { pushReactions } from '../reactions/actions.any';
@@ -35,7 +33,6 @@ import { addMessage, clearMessages } from './actions';
 import { closeChat } from './actions.any';
 import { ChatPrivacyDialog } from './components';
 import {
-    CHAT_VIEW_MODAL_ID,
     INCOMING_MSG_SOUND_ID,
     MESSAGE_TYPE_ERROR,
     MESSAGE_TYPE_LOCAL,
@@ -50,7 +47,7 @@ declare var interfaceConfig : Object;
 /**
  * Timeout for when to show the privacy notice after a private message was received.
  *
- * E.g. if this value is 20 secs (20000ms), then we show the privacy notice when sending a non private
+ * E.g. If this value is 20 secs (20000ms), then we show the privacy notice when sending a non private
  * message after we have received a private message in the last 20 seconds.
  */
 const PRIVACY_NOTICE_TIMEOUT = 20 * 1000;
@@ -68,7 +65,12 @@ MiddlewareRegistry.register(store => next => action => {
 
     switch (action.type) {
     case ADD_MESSAGE:
-        unreadCount = action.hasRead ? 0 : getUnreadCount(getState()) + 1;
+        unreadCount = getUnreadCount(getState());
+        if (action.isReaction) {
+            action.hasRead = false;
+        } else {
+            unreadCount = action.hasRead ? 0 : unreadCount + 1;
+        }
         isOpen = getState()['features/chat'].isOpen;
 
         if (typeof APP !== 'undefined') {
@@ -90,18 +92,6 @@ MiddlewareRegistry.register(store => next => action => {
         break;
 
     case OPEN_CHAT:
-        if (navigator.product === 'ReactNative') {
-            if (localParticipant.name) {
-                dispatch(setActiveModalId(CHAT_VIEW_MODAL_ID));
-            } else {
-                dispatch(openDisplayNamePrompt(() => {
-                    dispatch(setActiveModalId(CHAT_VIEW_MODAL_ID));
-                }));
-            }
-        } else {
-            dispatch(setActiveModalId(CHAT_VIEW_MODAL_ID));
-        }
-
         unreadCount = 0;
 
         if (typeof APP !== 'undefined') {
@@ -121,8 +111,6 @@ MiddlewareRegistry.register(store => next => action => {
         if (isPollTabOpen) {
             dispatch(resetNbUnreadPollsMessages());
         }
-
-        dispatch(setActiveModalId());
         break;
     }
 
@@ -171,7 +159,7 @@ MiddlewareRegistry.register(store => next => action => {
             message: action.message,
             privateMessage: false,
             timestamp: Date.now()
-        }, false);
+        }, false, true);
     }
     }
 
@@ -180,7 +168,7 @@ MiddlewareRegistry.register(store => next => action => {
 
 /**
  * Set up state change listener to perform maintenance tasks when the conference
- * is left or failed, e.g. clear messages or close the chat modal if it's left
+ * is left or failed, e.g. Clear messages or close the chat modal if it's left
  * open.
  */
 StateListenerRegistry.register(
@@ -270,7 +258,7 @@ function _addChatMsgListener(conference, store) {
                         message: getReactionMessageFromBuffer(eventData.reactions),
                         privateMessage: false,
                         timestamp: eventData.timestamp
-                    }, false);
+                    }, false, true);
                 }
             }
         });
@@ -304,11 +292,13 @@ function _handleChatError({ dispatch }, error) {
  * @param {Store} store - The Redux store.
  * @param {Object} message - The message object.
  * @param {boolean} shouldPlaySound - Whether or not to play the incoming message sound.
+ * @param {boolean} isReaction - Whether or not the message is a reaction message.
  * @returns {void}
  */
 function _handleReceivedMessage({ dispatch, getState },
         { id, message, privateMessage, timestamp },
-        shouldPlaySound = true
+        shouldPlaySound = true,
+        isReaction = false
 ) {
     // Logic for all platforms:
     const state = getState();
@@ -337,7 +327,8 @@ function _handleReceivedMessage({ dispatch, getState },
         message,
         privateMessage,
         recipient: getParticipantDisplayName(state, localParticipant.id),
-        timestamp: millisecondsTimestamp
+        timestamp: millisecondsTimestamp,
+        isReaction
     }));
 
     if (typeof APP !== 'undefined') {

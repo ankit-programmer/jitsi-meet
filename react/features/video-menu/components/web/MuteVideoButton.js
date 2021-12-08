@@ -44,10 +44,10 @@ class MuteVideoButton extends AbstractMuteVideoButton {
         const { _videoTrackMuted, participantID, t } = this.props;
         const muteConfig = _videoTrackMuted ? {
             translationKey: 'videothumbnail.videoMuted',
-            muteClassName: 'mutelink disabled'
+            muteClassName: 'mutevideolink disabled'
         } : {
             translationKey: 'videothumbnail.domuteVideo',
-            muteClassName: 'mutelink'
+            muteClassName: 'mutevideolink'
         };
 
         return (
@@ -61,7 +61,7 @@ class MuteVideoButton extends AbstractMuteVideoButton {
         );
     }
 
-    _handleClick: () => void
+    _handleClick: () => void;
 }
 
 export default translate(connect(_mapStateToProps)(MuteVideoButton));

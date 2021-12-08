@@ -13,7 +13,7 @@ import AbstractMuteEveryonesVideoDialog, { abstractMapStateToProps, type Props }
  * A React Component with the contents for a dialog that asks for confirmation
  * from the user before disabling all remote participants cameras.
  *
- * @extends AbstractMuteEveryonesVideoDialog
+ * @augments AbstractMuteEveryonesVideoDialog
  */
 class MuteEveryonesVideoDialog extends AbstractMuteEveryonesVideoDialog<Props> {
 
@@ -48,7 +48,7 @@ class MuteEveryonesVideoDialog extends AbstractMuteEveryonesVideoDialog<Props> {
                 width = 'small'>
                 <div className = 'mute-dialog'>
                     {this.state.content}
-                    {this.props.exclude.length === 0 && (
+                    { this.props.isModerationSupported && this.props.exclude.length === 0 && (
                         <>
                             <div className = 'separator-line' />
                             <div className = 'control-row'>

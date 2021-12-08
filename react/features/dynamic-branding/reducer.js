@@ -1,6 +1,7 @@
 // @flow
 
 import { ReducerRegistry } from '../base/redux';
+import { type Image } from '../virtual-background/constants';
 
 import {
     SET_DYNAMIC_BRANDING_DATA,
@@ -100,6 +101,14 @@ const DEFAULT_STATE = {
     logoImageUrl: '',
 
     /**
+     * The generated MUI branded theme based on the custom theme json.
+     *
+     * @public
+     * @type {boolean}
+     */
+    muiBrandedTheme: undefined,
+
+    /**
      * The lobby/prejoin background.
      *
      * @public
@@ -108,12 +117,20 @@ const DEFAULT_STATE = {
     premeetingBackground: '',
 
     /**
-     * Flag used to signal if the app should use a custom logo or not
+     * Flag used to signal if the app should use a custom logo or not.
      *
      * @public
      * @type {boolean}
      */
-    useDynamicBrandingData: false
+    useDynamicBrandingData: false,
+
+    /**
+     * An array of images to be used as virtual backgrounds instead of the default ones.
+     *
+     * @public
+     * @type {Array<Object>}
+     */
+    virtualBackgrounds: []
 };
 
 /**
@@ -131,7 +148,9 @@ ReducerRegistry.register(STORE_NAME, (state = DEFAULT_STATE, action) => {
             inviteDomain,
             logoClickUrl,
             logoImageUrl,
-            premeetingBackground
+            muiBrandedTheme,
+            premeetingBackground,
+            virtualBackgrounds
         } = action.value;
 
         return {
@@ -143,10 +162,12 @@ ReducerRegistry.register(STORE_NAME, (state = DEFAULT_STATE, action) => {
             inviteDomain,
             logoClickUrl,
             logoImageUrl,
+            muiBrandedTheme,
             premeetingBackground,
             customizationFailed: false,
             customizationReady: true,
-            useDynamicBrandingData: true
+            useDynamicBrandingData: true,
+            virtualBackgrounds: formatImages(virtualBackgrounds || [])
         };
     }
     case SET_DYNAMIC_BRANDING_FAILED: {
@@ -166,3 +187,30 @@ ReducerRegistry.register(STORE_NAME, (state = DEFAULT_STATE, action) => {
 
     return state;
 });
+
+/**
+ * Transforms the branding images into an array of Images objects ready
+ * to be used as virtual backgrounds.
+ *
+ * @param {Array<string>} images -
+ * @private
+ * @returns {{Props}}
+ */
+function formatImages(images: Array<string> | Array<Object>): Array<Image> {
+    return images.map((img, i) => {
+        let src;
+        let tooltip;
+
+        if (typeof img === 'object') {
+            ({ src, tooltip } = img);
+        } else {
+            src = img;
+        }
+
+        return {
+            id: `branding-${i}`,
+            src,
+            tooltip
+        };
+    });
+}

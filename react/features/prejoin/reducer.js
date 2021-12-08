@@ -1,6 +1,7 @@
 import { PersistenceRegistry, ReducerRegistry } from '../base/redux';
 
 import {
+    PREJOIN_JOINING_IN_PROGRESS,
     SET_DEVICE_STATUS,
     SET_DIALOUT_COUNTRY,
     SET_DIALOUT_NUMBER,
@@ -48,12 +49,16 @@ PersistenceRegistry.register(STORE_NAME, {
 }, DEFAULT_STATE);
 
 /**
- * Listen for actions that mutate the prejoin state
+ * Listen for actions that mutate the prejoin state.
  */
 ReducerRegistry.register(
     'features/prejoin', (state = DEFAULT_STATE, action) => {
         switch (action.type) {
-
+        case PREJOIN_JOINING_IN_PROGRESS:
+            return {
+                ...state,
+                joiningInProgress: action.value
+            };
         case SET_SKIP_PREJOIN: {
             return {
                 ...state,
@@ -137,7 +142,7 @@ ReducerRegistry.register(
         default:
             return state;
         }
-    },
+    }
 );
 
 /**

@@ -1,7 +1,7 @@
 /* global APP, JitsiMeetJS, config */
 
 import { jitsiLocalStorage } from '@jitsi/js-utils';
-import Logger from 'jitsi-meet-logger';
+import Logger from '@jitsi/logger';
 
 import { redirectToTokenAuthService } from './modules/UI/authentication/AuthHandler';
 import { LoginDialog } from './react/features/authentication/components';
@@ -106,9 +106,7 @@ export async function connect(id, password, roomName) {
 
     serviceUrl += `?room=${roomName}`;
 
-    // FIXME Remove deprecated 'bosh' option assignment at some point(LJM will be accepting only 'serviceUrl' option
-    //  in future). It's included for the time being for Jitsi Meet and lib-jitsi-meet versions interoperability.
-    connectionConfig.serviceUrl = connectionConfig.bosh = serviceUrl;
+    connectionConfig.serviceUrl = serviceUrl;
 
     if (connectionConfig.websocketKeepAliveUrl) {
         connectionConfig.websocketKeepAliveUrl += `?room=${roomName}`;

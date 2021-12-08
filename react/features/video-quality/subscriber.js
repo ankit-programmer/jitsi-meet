@@ -191,6 +191,7 @@ function _updateReceiverVideoConstraints({ getState }) {
     const { maxReceiverVideoQuality, preferredVideoQuality } = state['features/video-quality'];
     const { participantId: largeVideoParticipantId } = state['features/large-video'];
     const maxFrameHeight = Math.min(maxReceiverVideoQuality, preferredVideoQuality);
+    const { remoteScreenShares } = state['features/video-layout'];
     const { visibleRemoteParticipants } = state['features/filmstrip'];
 
     const receiverConstraints = {
@@ -211,6 +212,9 @@ function _updateReceiverVideoConstraints({ getState }) {
             receiverConstraints.constraints[participantId] = { 'maxHeight': maxFrameHeight };
         });
 
+        // Prioritize screenshare in tile view.
+        remoteScreenShares?.length && (receiverConstraints.selectedEndpoints = remoteScreenShares);
+
     // Stage view.
     } else {
         if (!visibleRemoteParticipants?.size && !largeVideoParticipantId) {
@@ -229,7 +233,6 @@ function _updateReceiverVideoConstraints({ getState }) {
         }
     }
 
-    logger.info(`Setting receiver video constraints to ${JSON.stringify(receiverConstraints)}`);
     try {
         conference.setReceiverConstraints(receiverConstraints);
     } catch (error) {

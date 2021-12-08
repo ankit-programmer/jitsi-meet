@@ -1,11 +1,22 @@
 // @flow
 
-import Logger from 'jitsi-meet-logger';
+import Logger from '@jitsi/logger';
 
 import {
     createApiEvent,
     sendAnalytics
 } from '../../react/features/analytics';
+import {
+    approveParticipantAudio,
+    approveParticipantVideo,
+    rejectParticipantAudio,
+    rejectParticipantVideo,
+    requestDisableAudioModeration,
+    requestDisableVideoModeration,
+    requestEnableAudioModeration,
+    requestEnableVideoModeration
+} from '../../react/features/av-moderation/actions';
+import { isEnabledFromState } from '../../react/features/av-moderation/functions';
 import {
     getCurrentConference,
     sendTones,
@@ -15,6 +26,7 @@ import {
 } from '../../react/features/base/conference';
 import { overwriteConfig, getWhitelistedJSON } from '../../react/features/base/config';
 import { toggleDialog } from '../../react/features/base/dialog/actions';
+import { isSupportedBrowser } from '../../react/features/base/environment';
 import { parseJWTFromURLParams } from '../../react/features/base/jwt';
 import JitsiMeetJS, { JitsiRecordingConstants } from '../../react/features/base/lib-jitsi-meet';
 import { MEDIA_TYPE } from '../../react/features/base/media';
@@ -24,7 +36,9 @@ import {
     pinParticipant,
     kickParticipant,
     raiseHand,
-    isParticipantModerator
+    isParticipantModerator,
+    isLocalParticipantModerator,
+    hasRaisedHand
 } from '../../react/features/base/participants';
 import { updateSettings } from '../../react/features/base/settings';
 import { isToggleCameraEnabled, toggleCamera } from '../../react/features/base/tracks';
@@ -38,7 +52,7 @@ import {
     processExternalDeviceRequest
 } from '../../react/features/device-selection/functions';
 import { isEnabled as isDropboxEnabled } from '../../react/features/dropbox';
-import { toggleE2EE } from '../../react/features/e2ee/actions';
+import { setMediaEncryptionKey, toggleE2EE } from '../../react/features/e2ee/actions';
 import { setVolume } from '../../react/features/filmstrip';
 import { invite } from '../../react/features/invite';
 import {
@@ -48,11 +62,13 @@ import {
     captureLargeVideoScreenshot,
     resizeLargeVideo
 } from '../../react/features/large-video/actions.web';
-import { toggleLobbyMode } from '../../react/features/lobby/actions';
+import { toggleLobbyMode, setKnockingParticipantApproval } from '../../react/features/lobby/actions';
+import { isForceMuted } from '../../react/features/participants-pane/functions';
 import { RECORDING_TYPES } from '../../react/features/recording/constants';
 import { getActiveSession } from '../../react/features/recording/functions';
-import { isScreenAudioSupported } from '../../react/features/screen-share';
+import { isScreenAudioSupported, isScreenVideoShared } from '../../react/features/screen-share';
 import { startScreenShareFlow, startAudioScreenShareFlow } from '../../react/features/screen-share/actions';
+import { toggleScreenshotCaptureSummary } from '../../react/features/screenshot-capture';
 import { playSharedVideo, stopSharedVideo } from '../../react/features/shared-video/actions.any';
 import { toggleTileView, setTileView } from '../../react/features/video-layout';
 import { muteAllParticipants } from '../../react/features/video-menu/actions';
@@ -99,6 +115,23 @@ let videoAvailable = true;
  */
 function initCommands() {
     commands = {
+        'answer-knocking-participant': (id, approved) => {
+            APP.store.dispatch(setKnockingParticipantApproval(id, approved));
+        },
+        'approve-video': participantId => {
+            if (!isLocalParticipantModerator(APP.store.getState())) {
+                return;
+            }
+
+            APP.store.dispatch(approveParticipantVideo(participantId));
+        },
+        'ask-to-unmute': participantId => {
+            if (!isLocalParticipantModerator(APP.store.getState())) {
+                return;
+            }
+
+            APP.store.dispatch(approveParticipantAudio(participantId));
+        },
         'display-name': displayName => {
             sendAnalytics(createApiEvent('display.name.changed'));
             APP.conference.changeLocalDisplayName(displayName);
@@ -148,6 +181,15 @@ function initCommands() {
         },
         'proxy-connection-event': event => {
             APP.conference.onProxyConnectionEvent(event);
+        },
+        'reject-participant': (participantId, mediaType) => {
+            if (!isLocalParticipantModerator(APP.store.getState())) {
+                return;
+            }
+
+            const reject = mediaType === MEDIA_TYPE.VIDEO ? rejectParticipantVideo : rejectParticipantAudio;
+
+            APP.store.dispatch(reject(participantId));
         },
         'resize-large-video': (width, height) => {
             logger.debug('Resize large video command received');
@@ -217,13 +259,31 @@ function initCommands() {
             sendAnalytics(createApiEvent('chat.toggled'));
             APP.store.dispatch(toggleChat());
         },
+        'toggle-moderation': (enabled, mediaType) => {
+            const state = APP.store.getState();
+
+            if (!isLocalParticipantModerator(state)) {
+                return;
+            }
+
+            const enable = mediaType === MEDIA_TYPE.VIDEO
+                ? requestEnableVideoModeration : requestEnableAudioModeration;
+            const disable = mediaType === MEDIA_TYPE.VIDEO
+                ? requestDisableVideoModeration : requestDisableAudioModeration;
+
+            if (enabled) {
+                APP.store.dispatch(enable());
+            } else {
+                APP.store.dispatch(disable());
+            }
+        },
         'toggle-raise-hand': () => {
             const localParticipant = getLocalParticipant(APP.store.getState());
 
             if (!localParticipant) {
                 return;
             }
-            const { raisedHand } = localParticipant;
+            const raisedHand = hasRaisedHand(localParticipant);
 
             sendAnalytics(createApiEvent('raise-hand.toggled'));
             APP.store.dispatch(raiseHand(!raisedHand));
@@ -304,6 +364,9 @@ function initCommands() {
         'toggle-e2ee': enabled => {
             logger.debug('Toggle E2EE key command received');
             APP.store.dispatch(toggleE2EE(enabled));
+        },
+        'set-media-encryption-key': keyInfo => {
+            APP.store.dispatch(setMediaEncryptionKey(JSON.parse(keyInfo)));
         },
         'set-video-quality': frameHeight => {
             logger.debug('Set video quality command received');
@@ -408,6 +471,9 @@ function initCommands() {
                 return;
             }
 
+            if (isScreenVideoShared(APP.store.getState())) {
+                APP.store.dispatch(toggleScreenshotCaptureSummary(true));
+            }
             conference.startRecording(recordingConfig);
         },
 
@@ -436,6 +502,7 @@ function initCommands() {
             const activeSession = getActiveSession(state, mode);
 
             if (activeSession && activeSession.id) {
+                APP.store.dispatch(toggleScreenshotCaptureSummary(false));
                 conference.stopRecording(activeSession.id);
             } else {
                 logger.error('No recording or streaming session found');
@@ -505,6 +572,9 @@ function initCommands() {
                     });
                 });
             break;
+        case 'deployment-info':
+            callback(APP.store.getState()['features/base/config'].deploymentInfo);
+            break;
         case 'invite': {
             const { invitees } = request;
 
@@ -540,6 +610,22 @@ function initCommands() {
         case 'is-audio-muted':
             callback(APP.conference.isLocalAudioMuted());
             break;
+        case 'is-moderation-on': {
+            const { mediaType } = request;
+            const type = mediaType || MEDIA_TYPE.AUDIO;
+
+            callback(isEnabledFromState(type, APP.store.getState()));
+            break;
+        }
+        case 'is-participant-force-muted': {
+            const state = APP.store.getState();
+            const { participantId, mediaType } = request;
+            const type = mediaType || MEDIA_TYPE.AUDIO;
+            const participant = getParticipantById(state, participantId);
+
+            callback(isForceMuted(participant, type, state));
+            break;
+        }
         case 'is-video-muted':
             callback(APP.conference.isLocalVideoMuted());
             break;
@@ -692,6 +778,7 @@ class API {
         this._enabled = true;
 
         initCommands();
+        this.notifyBrowserSupport(isSupportedBrowser());
     }
 
     /**
@@ -801,6 +888,51 @@ class API {
         this._sendEvent({
             name: 'mouse-move',
             event: sanitizeMouseEvent(event)
+        });
+    }
+
+    /**
+     * Notify the external application that the moderation status has changed.
+     *
+     * @param {string} mediaType - Media type for which the moderation changed.
+     * @param {boolean} enabled - Whether or not the new moderation status is enabled.
+     * @returns {void}
+     */
+    notifyModerationChanged(mediaType: string, enabled: boolean) {
+        this._sendEvent({
+            name: 'moderation-status-changed',
+            mediaType,
+            enabled
+        });
+    }
+
+    /**
+     * Notify the external application that a participant was approved on moderation.
+     *
+     * @param {string} participantId - The ID of the participant that got approved.
+     * @param {string} mediaType - Media type for which the participant was approved.
+     * @returns {void}
+     */
+    notifyParticipantApproved(participantId: string, mediaType: string) {
+        this._sendEvent({
+            name: 'moderation-participant-approved',
+            id: participantId,
+            mediaType
+        });
+    }
+
+    /**
+     * Notify the external application that a participant was rejected on moderation.
+     *
+     * @param {string} participantId - The ID of the participant that got rejected.
+     * @param {string} mediaType - Media type for which the participant was rejected.
+     * @returns {void}
+     */
+    notifyParticipantRejected(participantId: string, mediaType: string) {
+        this._sendEvent({
+            name: 'moderation-participant-rejected',
+            id: participantId,
+            mediaType
         });
     }
 
@@ -1029,6 +1161,15 @@ class API {
             name: 'video-conference-left',
             roomName
         });
+    }
+
+    /**
+     * Notify external application that the data channel has been opened.
+     *
+     * @returns {void}
+     */
+    notifyDataChannelOpened() {
+        this._sendEvent({ name: 'data-channel-opened' });
     }
 
     /**
@@ -1330,6 +1471,35 @@ class API {
     }
 
     /**
+     * Notify external application (if API is enabled) that the current recording link is
+     * available.
+     *
+     * @param {string} link - The recording download link.
+     * @param {number} ttl - The recording download link time to live.
+     * @returns {void}
+     */
+    notifyRecordingLinkAvailable(link: string, ttl: number) {
+        this._sendEvent({
+            name: 'recording-link-available',
+            link,
+            ttl
+        });
+    }
+
+    /**
+     * Notify external application (if API is enabled) that a participant is knocking in the lobby.
+     *
+     * @param {Object} participant - Participant data such as id and name.
+     * @returns {void}
+     */
+    notifyKnockingParticipant(participant: Object) {
+        this._sendEvent({
+            name: 'knocking-participant',
+            participant
+        });
+    }
+
+    /**
      * Notify external application (if API is enabled) that an error occured.
      *
      * @param {Object} error - The error.
@@ -1339,6 +1509,32 @@ class API {
         this._sendEvent({
             name: 'error-occurred',
             error
+        });
+    }
+
+    /**
+     * Notify external application ( if API is enabled) that a toolbar button was clicked.
+     *
+     * @param {string} key - The key of the toolbar button.
+     * @returns {void}
+     */
+    notifyToolbarButtonClicked(key: string) {
+        this._sendEvent({
+            name: 'toolbar-button-clicked',
+            key
+        });
+    }
+
+    /**
+     * Notify external application (if API is enabled) wether the used browser is supported or not.
+     *
+     * @param {boolean} supported - If browser is supported or not.
+     * @returns {void}
+     */
+    notifyBrowserSupport(supported: boolean) {
+        this._sendEvent({
+            name: 'browser-support',
+            supported
         });
     }
 

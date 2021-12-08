@@ -1,10 +1,10 @@
 // @flow
 
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 import { getFeatureFlag, REACTIONS_ENABLED } from '../base/flags';
 import { getLocalParticipant } from '../base/participants';
-import { extractFqnFromPath } from '../dynamic-branding/functions';
+import { extractFqnFromPath } from '../dynamic-branding';
 
 import { REACTIONS, SOUNDS_THRESHOLDS } from './constants';
 import logger from './logger';
@@ -39,7 +39,7 @@ export function getReactionsWithId(buffer: Array<string>) {
     return buffer.map<Object>(reaction => {
         return {
             reaction,
-            uid: uuid.v4()
+            uid: uuidv4()
         };
     });
 }
@@ -55,22 +55,24 @@ export async function sendReactionsWebhook(state: Object, reactions: Array<?stri
     const { webhookProxyUrl: url } = state['features/base/config'];
     const { conference } = state['features/base/conference'];
     const { jwt } = state['features/base/jwt'];
-    const { locationURL } = state['features/base/connection'];
+    const { connection } = state['features/base/connection'];
+    const jid = connection.getJid();
     const localParticipant = getLocalParticipant(state);
 
     const headers = {
-        'Authorization': `Bearer ${jwt}`,
+        ...jwt ? { 'Authorization': `Bearer ${jwt}` } : {},
         'Content-Type': 'application/json'
     };
 
 
     const reqBody = {
-        meetingFqn: extractFqnFromPath(locationURL.pathname),
+        meetingFqn: extractFqnFromPath(),
         sessionId: conference.sessionId,
         submitted: Date.now(),
         reactions,
-        participantId: localParticipant.id,
-        participantName: localParticipant.name
+        participantId: localParticipant.jwtId,
+        participantName: localParticipant.name,
+        participantJid: jid
     };
 
     if (url) {
@@ -151,11 +153,11 @@ export function getReactionsSoundsThresholds(reactions: Array<string>) {
  * @returns {boolean}
  */
 export function isReactionsEnabled(state: Object) {
-    const { enableReactions } = state['features/base/config'];
+    const { disableReactions } = state['features/base/config'];
 
     if (navigator.product === 'ReactNative') {
-        return enableReactions && getFeatureFlag(state, REACTIONS_ENABLED, true);
+        return !disableReactions && getFeatureFlag(state, REACTIONS_ENABLED, true);
     }
 
-    return enableReactions;
+    return !disableReactions;
 }

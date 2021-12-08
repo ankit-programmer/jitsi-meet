@@ -65,6 +65,11 @@ type Props = {
     _filmstripHeight: number,
 
     /**
+     * Whether this is a recorder or not.
+     */
+    _iAmRecorder: boolean,
+
+    /**
      * Whether the filmstrip button is enabled.
      */
     _isFilmstripButtonEnabled: boolean,
@@ -129,7 +134,7 @@ type Props = {
  * Implements a React {@link Component} which represents the filmstrip on
  * Web/React.
  *
- * @extends Component
+ * @augments Component
  */
 class Filmstrip extends PureComponent <Props> {
 
@@ -150,6 +155,7 @@ class Filmstrip extends PureComponent <Props> {
         this._listItemKey = this._listItemKey.bind(this);
         this._onGridItemsRendered = this._onGridItemsRendered.bind(this);
         this._onListItemsRendered = this._onListItemsRendered.bind(this);
+        this._onToggleButtonTouch = this._onToggleButtonTouch.bind(this);
     }
 
     /**
@@ -235,14 +241,14 @@ class Filmstrip extends PureComponent <Props> {
      * @returns {Object}
      */
     _calculateIndices(startIndex, stopIndex) {
-        const { _currentLayout, _thumbnailsReordered } = this.props;
+        const { _currentLayout, _iAmRecorder, _thumbnailsReordered } = this.props;
         let start = startIndex;
         let stop = stopIndex;
 
         if (_thumbnailsReordered) {
             // In tile view, the indices needs to be offset by 1 because the first thumbnail is that of the local
             // endpoint. The remote participants start from index 1.
-            if (_currentLayout === LAYOUTS.TILE_VIEW) {
+            if (!_iAmRecorder && _currentLayout === LAYOUTS.TILE_VIEW) {
                 start = Math.max(startIndex - 1, 0);
                 stop = stopIndex - 1;
             }
@@ -294,18 +300,24 @@ class Filmstrip extends PureComponent <Props> {
      * @returns {string} - The key.
      */
     _gridItemKey({ columnIndex, rowIndex }) {
-        const { _columns, _remoteParticipants, _remoteParticipantsLength, _thumbnailsReordered } = this.props;
+        const {
+            _columns,
+            _iAmRecorder,
+            _remoteParticipants,
+            _remoteParticipantsLength,
+            _thumbnailsReordered
+        } = this.props;
         const index = (rowIndex * _columns) + columnIndex;
 
         // When the thumbnails are reordered, local participant is inserted at index 0.
         const localIndex = _thumbnailsReordered ? 0 : _remoteParticipantsLength;
-        const remoteIndex = _thumbnailsReordered ? index - 1 : index;
+        const remoteIndex = _thumbnailsReordered && !_iAmRecorder ? index - 1 : index;
 
-        if (index > _remoteParticipantsLength) {
+        if (index > _remoteParticipantsLength - (_iAmRecorder ? 1 : 0)) {
             return `empty-${index}`;
         }
 
-        if (index === localIndex) {
+        if (!_iAmRecorder && index === localIndex) {
             return 'local';
         }
 
@@ -489,6 +501,21 @@ class Filmstrip extends PureComponent <Props> {
         this._doToggleFilmstrip();
     }
 
+    _onToggleButtonTouch: (SyntheticEvent<HTMLButtonElement>) => void;
+
+    /**
+     * Handler for touch start event of the 'toggle button'.
+     *
+     * @private
+     * @param {Object} e - The synthetic event.
+     * @returns {void}
+     */
+    _onToggleButtonTouch(e: SyntheticEvent<HTMLButtonElement>) {
+        // Don't propagate the touchStart event so the toolbar doesn't get toggled.
+        e.stopPropagation();
+        this._onToolbarToggleFilmstrip();
+    }
+
     /**
      * Creates a React Element for changing the visibility of the filmstrip when
      * clicked.
@@ -499,6 +526,9 @@ class Filmstrip extends PureComponent <Props> {
     _renderToggleButton() {
         const icon = this.props._visible ? IconMenuDown : IconMenuUp;
         const { t } = this.props;
+        const actions = isMobileBrowser()
+            ? { onTouchStart: this._onToggleButtonTouch }
+            : { onClick: this._onToolbarToggleFilmstrip };
 
         return (
             <div
@@ -507,9 +537,9 @@ class Filmstrip extends PureComponent <Props> {
                     aria-expanded = { this.props._visible }
                     aria-label = { t('toolbar.accessibilityLabel.toggleFilmstrip') }
                     id = 'toggleFilmstripButton'
-                    onClick = { this._onToolbarToggleFilmstrip }
                     onFocus = { this._onTabIn }
-                    tabIndex = { 0 }>
+                    tabIndex = { 0 }
+                    { ...actions }>
                     <Icon
                         aria-label = { t('toolbar.accessibilityLabel.toggleFilmstrip') }
                         src = { icon } />
@@ -528,7 +558,7 @@ class Filmstrip extends PureComponent <Props> {
  */
 function _mapStateToProps(state) {
     const toolbarButtons = getToolbarButtons(state);
-    const { testing = {} } = state['features/base/config'];
+    const { testing = {}, iAmRecorder } = state['features/base/config'];
     const enableThumbnailReordering = testing.enableThumbnailReordering ?? true;
     const { visible, remoteParticipants } = state['features/filmstrip'];
     const reduceHeight = state['features/toolbox'].visible && toolbarButtons.length;
@@ -596,6 +626,7 @@ function _mapStateToProps(state) {
         _currentLayout,
         _filmstripHeight: remoteFilmstripHeight,
         _filmstripWidth: remoteFilmstripWidth,
+        _iAmRecorder: Boolean(iAmRecorder),
         _isFilmstripButtonEnabled: isButtonEnabled('filmstrip', state),
         _remoteParticipantsLength: remoteParticipants.length,
         _remoteParticipants: remoteParticipants,

@@ -2,24 +2,22 @@
 
 import type { Dispatch } from 'redux';
 
-import { isLayoutTileView } from '../video-layout';
+import { overwriteConfig } from '../base/config';
+import { isMobileBrowser } from '../base/environment/utils';
 
 import {
+    CLEAR_TOOLBOX_TIMEOUT,
     FULL_SCREEN_CHANGED,
     SET_FULL_SCREEN,
-    SET_OVERFLOW_DRAWER
+    SET_OVERFLOW_DRAWER,
+    SET_OVERFLOW_MENU_VISIBLE,
+    SET_TOOLBAR_HOVERED,
+    SET_TOOLBOX_TIMEOUT
 } from './actionTypes';
-import {
-    clearToolboxTimeout,
-    setToolboxTimeout,
-    setToolboxTimeoutMS,
-    setToolboxVisible,
-    setToolboxEnabled
-} from './actions.native';
+import { setToolboxVisible } from './actions';
+import { getToolbarTimeout } from './functions';
 
-declare var interfaceConfig: Object;
-
-export * from './actions.native';
+export * from './actions.any';
 
 /**
  * Docks/undocks the Toolbox.
@@ -29,7 +27,9 @@ export * from './actions.native';
  */
 export function dockToolbox(dock: boolean): Function {
     return (dispatch: Dispatch<any>, getState: Function) => {
-        const { timeoutMS, visible } = getState()['features/toolbox'];
+        const state = getState();
+        const { visible } = state['features/toolbox'];
+        const toolbarTimeout = getToolbarTimeout(state);
 
         if (dock) {
             // First make sure the toolbox is shown.
@@ -40,7 +40,7 @@ export function dockToolbox(dock: boolean): Function {
             dispatch(
                 setToolboxTimeout(
                     () => dispatch(hideToolbox()),
-                    timeoutMS));
+                    toolbarTimeout));
         } else {
             dispatch(showToolbox());
         }
@@ -74,11 +74,9 @@ export function fullScreenChanged(fullScreen: boolean) {
 export function hideToolbox(force: boolean = false): Function {
     return (dispatch: Dispatch<any>, getState: Function) => {
         const state = getState();
-        const {
-            alwaysVisible,
-            hovered,
-            timeoutMS
-        } = state['features/toolbox'];
+        const { toolbarConfig: { alwaysVisible } } = state['features/base/config'];
+        const { hovered } = state['features/toolbox'];
+        const toolbarTimeout = getToolbarTimeout(state);
 
         if (alwaysVisible) {
             return;
@@ -96,7 +94,7 @@ export function hideToolbox(force: boolean = false): Function {
             dispatch(
                 setToolboxTimeout(
                     () => dispatch(hideToolbox()),
-                    timeoutMS));
+                    toolbarTimeout));
         } else {
             dispatch(setToolboxVisible(false));
         }
@@ -129,9 +127,13 @@ export function showToolbox(timeout: number = 0): Object {
     return (dispatch: Dispatch<any>, getState: Function) => {
         const state = getState();
         const {
-            alwaysVisible,
+            toolbarConfig: { initialTimeout, alwaysVisible },
+            toolbarConfig
+        } = state['features/base/config'];
+        const toolbarTimeout = getToolbarTimeout(state);
+
+        const {
             enabled,
-            timeoutMS,
             visible
         } = state['features/toolbox'];
 
@@ -141,11 +143,17 @@ export function showToolbox(timeout: number = 0): Object {
             // If the Toolbox is always visible, there's no need for a timeout
             // to toggle its visibility.
             if (!alwaysVisible) {
+                if (typeof initialTimeout === 'number') {
+                    // reset `initialTimeout` once it is consumed once
+                    dispatch(overwriteConfig({ toolbarConfig: {
+                        ...toolbarConfig,
+                        initialTimeout: null
+                    } }));
+                }
                 dispatch(
                     setToolboxTimeout(
                         () => dispatch(hideToolbox()),
-                        timeout || timeoutMS));
-                dispatch(setToolboxTimeoutMS(interfaceConfig.TOOLBAR_TIMEOUT));
+                        timeout || initialTimeout || toolbarTimeout));
             }
         }
     };
@@ -168,17 +176,72 @@ export function setOverflowDrawer(displayAsDrawer: boolean) {
 }
 
 /**
- * Disables and hides the toolbox on demand when in tile view.
+ * Signals that toolbox timeout should be cleared.
  *
- * @returns {void}
+ * @returns {{
+ *     type: CLEAR_TOOLBOX_TIMEOUT
+ * }}
  */
-export function disableToolboxOnTileView() {
-    return (dispatch: Dispatch<any>, getState: Function) => {
-        if (!isLayoutTileView(getState())) {
+export function clearToolboxTimeout(): Object {
+    return {
+        type: CLEAR_TOOLBOX_TIMEOUT
+    };
+}
+
+/**
+ * Shows/hides the overflow menu.
+ *
+ * @param {boolean} visible - True to show it or false to hide it.
+ * @returns {{
+ *     type: SET_OVERFLOW_MENU_VISIBLE,
+ *     visible: boolean
+ * }}
+ */
+export function setOverflowMenuVisible(visible: boolean): Object {
+    return {
+        type: SET_OVERFLOW_MENU_VISIBLE,
+        visible
+    };
+}
+
+/**
+ * Signals that toolbar is hovered value should be changed.
+ *
+ * @param {boolean} hovered - Flag showing whether toolbar is hovered.
+ * @returns {{
+ *     type: SET_TOOLBAR_HOVERED,
+ *     hovered: boolean
+ * }}
+ */
+export function setToolbarHovered(hovered: boolean): Object {
+    return {
+        type: SET_TOOLBAR_HOVERED,
+        hovered
+    };
+}
+
+/**
+ * Dispatches an action which sets new timeout for the toolbox visibility and clears the previous one.
+ * On mobile browsers the toolbox does not hide on timeout. It is toggled on simple tap.
+ *
+ * @param {Function} handler - Function to be invoked after the timeout.
+ * @param {number} timeoutMS - Delay.
+ * @returns {{
+ *     type: SET_TOOLBOX_TIMEOUT,
+ *     handler: Function,
+ *     timeoutMS: number
+ * }}
+ */
+export function setToolboxTimeout(handler: Function, timeoutMS: number): Object {
+    return function(dispatch) {
+        if (isMobileBrowser()) {
             return;
         }
 
-        dispatch(setToolboxEnabled(false));
-        dispatch(hideToolbox(true));
+        dispatch({
+            type: SET_TOOLBOX_TIMEOUT,
+            handler,
+            timeoutMS
+        });
     };
 }

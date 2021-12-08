@@ -77,7 +77,7 @@ export type Props = {
 
     /**
      * Whether video input preview should be displayed or not.
-     * (In the case of iOS Safari)
+     * (In the case of iOS Safari).
      */
     hideVideoInputPreview: boolean,
 
@@ -132,7 +132,7 @@ type State = {
 /**
  * React {@code Component} for previewing audio and video input/output devices.
  *
- * @extends Component
+ * @augments Component
  */
 class DeviceSelection extends AbstractDialogTab<Props, State> {
 
@@ -258,6 +258,12 @@ class DeviceSelection extends AbstractDialogTab<Props, State> {
      * @returns {void}
      */
     _createAudioInputTrack(deviceId) {
+        const { hideAudioInputPreview } = this.props;
+
+        if (hideAudioInputPreview) {
+            return;
+        }
+
         return this._disposeAudioInputPreview()
             .then(() => createLocalTrack('audio', deviceId, 5000))
             .then(jitsiLocalTrack => {

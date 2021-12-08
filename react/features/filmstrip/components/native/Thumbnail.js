@@ -132,7 +132,7 @@ type Props = {
     renderDisplayName: ?boolean,
 
     /**
-     * If true, it tells the thumbnail that it needs to behave differently. E.g. react differently to a single tap.
+     * If true, it tells the thumbnail that it needs to behave differently. E.g. React differently to a single tap.
      */
     tileView?: boolean
 };
@@ -217,7 +217,9 @@ class Thumbnail extends PureComponent<Props> {
         const indicators = [];
 
         if (renderModeratorIndicator) {
-            indicators.push(<View style = { styles.moderatorIndicatorContainer }>
+            indicators.push(<View
+                key = 'moderator-indicator'
+                style = { styles.moderatorIndicatorContainer }>
                 <ModeratorIndicator />
             </View>);
         }

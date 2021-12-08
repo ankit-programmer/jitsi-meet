@@ -7,6 +7,7 @@ import {
     sendAnalytics
 } from '../../../analytics';
 import { JitsiRecordingConstants } from '../../../base/lib-jitsi-meet';
+import { toggleScreenshotCaptureSummary } from '../../../screenshot-capture';
 import { getActiveSession } from '../../functions';
 
 /**
@@ -26,6 +27,11 @@ export type Props = {
     _fileRecordingSession: Object,
 
     /**
+     * The redux dispatch function.
+     */
+    dispatch: Function,
+
+    /**
      * Invoked to obtain translated strings.
      */
     t: Function
@@ -35,7 +41,7 @@ export type Props = {
  * Abstract React Component for getting confirmation to stop a file recording
  * session in progress.
  *
- * @extends Component
+ * @augments Component
  */
 export default class AbstractStopRecordingDialog<P: Props>
     extends Component<P> {
@@ -66,6 +72,7 @@ export default class AbstractStopRecordingDialog<P: Props>
 
         if (_fileRecordingSession) {
             this.props._conference.stopRecording(_fileRecordingSession.id);
+            this.props.dispatch(toggleScreenshotCaptureSummary(false));
         }
 
         return true;

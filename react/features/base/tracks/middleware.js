@@ -3,7 +3,7 @@
 import UIEvents from '../../../../service/UI/UIEvents';
 import { showModeratedNotification } from '../../av-moderation/actions';
 import { shouldShowModeratedNotification } from '../../av-moderation/functions';
-import { hideNotification } from '../../notifications';
+import { hideNotification, isModerationNotificationDisplayed } from '../../notifications';
 import { isPrejoinPageVisible } from '../../prejoin/functions';
 import { getAvailableDevices } from '../devices/actions';
 import {
@@ -142,19 +142,22 @@ MiddlewareRegistry.register(store => next => action => {
             // check for A/V Moderation when trying to start screen sharing
             if ((action.enabled || action.enabled === undefined)
                 && shouldShowModeratedNotification(MEDIA_TYPE.VIDEO, store.getState())) {
-                store.dispatch(showModeratedNotification(MEDIA_TYPE.PRESENTER));
+                if (!isModerationNotificationDisplayed(MEDIA_TYPE.PRESENTER, store.getState())) {
+                    store.dispatch(showModeratedNotification(MEDIA_TYPE.PRESENTER));
+                }
 
                 return;
             }
 
-            const { enabled, audioOnly } = action;
+            const { enabled, audioOnly, ignoreDidHaveVideo } = action;
 
             APP.UI.emitEvent(UIEvents.TOGGLE_SCREENSHARING, { enabled,
-                audioOnly });
+                audioOnly,
+                ignoreDidHaveVideo });
         }
         break;
 
-    case TRACK_UPDATED:
+    case TRACK_UPDATED: {
         // TODO Remove the following calls to APP.UI once components interested
         // in track mute changes are moved into React and/or redux.
         if (typeof APP !== 'undefined') {
@@ -176,7 +179,7 @@ MiddlewareRegistry.register(store => next => action => {
                 } else if (jitsiTrack.isLocal() && !(jitsiTrack.videoType === VIDEO_TYPE.DESKTOP)) {
                     APP.conference.setVideoMuteStatus();
                 } else if (jitsiTrack.isLocal() && muted && jitsiTrack.videoType === VIDEO_TYPE.DESKTOP) {
-                    store.dispatch(toggleScreensharing(false));
+                    store.dispatch(toggleScreensharing(false, false, true));
                 } else {
                     APP.UI.setVideoMuted(participantID);
                 }
@@ -188,7 +191,14 @@ MiddlewareRegistry.register(store => next => action => {
 
             return result;
         }
+        const { jitsiTrack } = action.track;
 
+        if (jitsiTrack.isMuted()
+            && jitsiTrack.type === MEDIA_TYPE.VIDEO && jitsiTrack.videoType === VIDEO_TYPE.DESKTOP) {
+            store.dispatch(toggleScreensharing(false));
+        }
+        break;
+    }
     }
 
     return next(action);

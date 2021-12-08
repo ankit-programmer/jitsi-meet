@@ -10,9 +10,21 @@ import {
 } from './sounds';
 
 /**
- * The payload name for the datachannel/endpoint reaction event
+ * The payload name for the datachannel/endpoint reaction event.
  */
 export const ENDPOINT_REACTION_NAME = 'endpoint-reaction';
+
+/**
+ * The (name of the) command which transports the state (represented by
+ * {State} for the local state at the time of this writing) of a {MuteReactions}
+ * (instance) between moderator and participants.
+ */
+export const MUTE_REACTIONS_COMMAND = 'mute-reactions';
+
+/**
+ * The prefix for all reaction sound IDs. Also the ID used in config to disable reaction sounds.
+ */
+export const REACTION_SOUND = 'REACTION_SOUND';
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -20,7 +32,7 @@ export const ENDPOINT_REACTION_NAME = 'endpoint-reaction';
  *
  * @type { string }
  */
-export const LAUGH_SOUND_ID = 'LAUGH_SOUND_';
+export const LAUGH_SOUND_ID = `${REACTION_SOUND}_LAUGH_`;
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -28,7 +40,7 @@ export const LAUGH_SOUND_ID = 'LAUGH_SOUND_';
  *
  * @type {string}
  */
-export const CLAP_SOUND_ID = 'CLAP_SOUND_';
+export const CLAP_SOUND_ID = `${REACTION_SOUND}_CLAP_`;
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -36,7 +48,7 @@ export const CLAP_SOUND_ID = 'CLAP_SOUND_';
  *
  * @type {string}
  */
-export const LIKE_SOUND_ID = 'LIKE_SOUND_';
+export const LIKE_SOUND_ID = `${REACTION_SOUND}_LIKE_`;
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -44,7 +56,7 @@ export const LIKE_SOUND_ID = 'LIKE_SOUND_';
  *
  * @type {string}
  */
-export const BOO_SOUND_ID = 'BOO_SOUND_';
+export const BOO_SOUND_ID = `${REACTION_SOUND}_BOO_`;
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -52,7 +64,7 @@ export const BOO_SOUND_ID = 'BOO_SOUND_';
  *
  * @type {string}
  */
-export const SURPRISE_SOUND_ID = 'SURPRISE_SOUND_';
+export const SURPRISE_SOUND_ID = `${REACTION_SOUND}_SURPRISE_`;
 
 /**
  * The audio ID prefix of the audio element for which the {@link playAudio} action is
@@ -60,7 +72,7 @@ export const SURPRISE_SOUND_ID = 'SURPRISE_SOUND_';
  *
  * @type {string}
  */
-export const SILENCE_SOUND_ID = 'SILENCE_SOUND_';
+export const SILENCE_SOUND_ID = `${REACTION_SOUND}_SILENCE_`;
 
 /**
  * The audio ID of the audio element for which the {@link playAudio} action is

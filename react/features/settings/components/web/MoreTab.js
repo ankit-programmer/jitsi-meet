@@ -41,11 +41,6 @@ export type Props = {
     followMeActive: boolean,
 
     /**
-     * Whether or not the user has selected the Follow Me feature to be enabled.
-     */
-    followMeEnabled: boolean,
-
-    /**
      * All available languages to display in the language select dropdown.
      */
     languages: Array<string>,
@@ -69,18 +64,6 @@ export type Props = {
      * Whether or not to show prejoin screen.
      */
     showPrejoinPage: boolean,
-
-    /**
-     * Whether or not the user has selected the Start Audio Muted feature to be
-     * enabled.
-     */
-    startAudioMuted: boolean,
-
-    /**
-     * Whether or not the user has selected the Start Video Muted feature to be
-     * enabled.
-     */
-    startVideoMuted: boolean,
 
     /**
      * Invoked to obtain translated strings.
@@ -107,7 +90,7 @@ type State = {
 /**
  * React {@code Component} for modifying language and moderator settings.
  *
- * @extends Component
+ * @augments Component
  */
 class MoreTab extends AbstractDialogTab<Props, State> {
     /**
@@ -129,9 +112,6 @@ class MoreTab extends AbstractDialogTab<Props, State> {
         this._onFramerateItemSelect = this._onFramerateItemSelect.bind(this);
         this._onLanguageDropdownOpenChange = this._onLanguageDropdownOpenChange.bind(this);
         this._onLanguageItemSelect = this._onLanguageItemSelect.bind(this);
-        this._onStartAudioMutedChanged = this._onStartAudioMutedChanged.bind(this);
-        this._onStartVideoMutedChanged = this._onStartVideoMutedChanged.bind(this);
-        this._onFollowMeEnabledChanged = this._onFollowMeEnabledChanged.bind(this);
         this._onShowPrejoinPageChanged = this._onShowPrejoinPageChanged.bind(this);
         this._onKeyboardShortcutEnableChanged = this._onKeyboardShortcutEnableChanged.bind(this);
     }
@@ -148,7 +128,13 @@ class MoreTab extends AbstractDialogTab<Props, State> {
         content.push(this._renderSettingsLeft());
         content.push(this._renderSettingsRight());
 
-        return <div className = 'more-tab box'>{ content }</div>;
+        return (
+            <div
+                className = 'more-tab box'
+                key = 'more'>
+                { content }
+            </div>
+        );
     }
 
     _onFramerateDropdownOpenChange: (Object) => void;
@@ -207,48 +193,6 @@ class MoreTab extends AbstractDialogTab<Props, State> {
         super._onChange({ currentLanguage: language });
     }
 
-    _onStartAudioMutedChanged: (Object) => void;
-
-    /**
-     * Callback invoked to select if conferences should start
-     * with audio muted.
-     *
-     * @param {Object} e - The key event to handle.
-     *
-     * @returns {void}
-     */
-    _onStartAudioMutedChanged({ target: { checked } }) {
-        super._onChange({ startAudioMuted: checked });
-    }
-
-    _onStartVideoMutedChanged: (Object) => void;
-
-    /**
-     * Callback invoked to select if conferences should start
-     * with video disabled.
-     *
-     * @param {Object} e - The key event to handle.
-     *
-     * @returns {void}
-     */
-    _onStartVideoMutedChanged({ target: { checked } }) {
-        super._onChange({ startVideoMuted: checked });
-    }
-
-    _onFollowMeEnabledChanged: (Object) => void;
-
-    /**
-     * Callback invoked to select if follow-me mode
-     * should be activated.
-     *
-     * @param {Object} e - The key event to handle.
-     *
-     * @returns {void}
-     */
-    _onFollowMeEnabledChanged({ target: { checked } }) {
-        super._onChange({ followMeEnabled: checked });
-    }
-
     _onShowPrejoinPageChanged: (Object) => void;
 
     /**
@@ -301,7 +245,9 @@ class MoreTab extends AbstractDialogTab<Props, State> {
                     { t('settings.desktopShareFramerate') }
                 </h2>
                 <div className = 'dropdown-menu'>
-                    <TouchmoveHack isModal = { true }>
+                    <TouchmoveHack
+                        flex = { true }
+                        isModal = { true }>
                         <DropdownMenu
                             isOpen = { this.state.isFramerateSelectOpen }
                             onOpenChange = { this._onFramerateDropdownOpenChange }
@@ -384,7 +330,9 @@ class MoreTab extends AbstractDialogTab<Props, State> {
                     { t('settings.language') }
                 </h2>
                 <div className = 'dropdown-menu'>
-                    <TouchmoveHack isModal = { true }>
+                    <TouchmoveHack
+                        flex = { true }
+                        isModal = { true }>
                         <DropdownMenu
                             isOpen = { this.state.isLanguageSelectOpen }
                             onOpenChange = { this._onLanguageDropdownOpenChange }
@@ -402,48 +350,6 @@ class MoreTab extends AbstractDialogTab<Props, State> {
                         </DropdownMenu>
                     </TouchmoveHack>
                 </div>
-            </div>
-        );
-    }
-
-    /**
-     * Returns the React Element for modifying conference-wide settings.
-     *
-     * @private
-     * @returns {ReactElement}
-     */
-    _renderModeratorSettings() {
-        const {
-            followMeActive,
-            followMeEnabled,
-            startAudioMuted,
-            startVideoMuted,
-            t
-        } = this.props;
-
-        return (
-            <div
-                className = 'settings-sub-pane-element'
-                key = 'moderator'>
-                <h2 className = 'mock-atlaskit-label'>
-                    { t('settings.moderator') }
-                </h2>
-                <Checkbox
-                    isChecked = { startAudioMuted }
-                    label = { t('settings.startAudioMuted') }
-                    name = 'start-audio-muted'
-                    onChange = { this._onStartAudioMutedChanged } />
-                <Checkbox
-                    isChecked = { startVideoMuted }
-                    label = { t('settings.startVideoMuted') }
-                    name = 'start-video-muted'
-                    onChange = { this._onStartVideoMutedChanged } />
-                <Checkbox
-                    isChecked = { followMeEnabled && !followMeActive }
-                    isDisabled = { followMeActive }
-                    label = { t('settings.followMe') }
-                    name = 'follow-me'
-                    onChange = { this._onFollowMeEnabledChanged } />
             </div>
         );
     }
@@ -484,7 +390,8 @@ class MoreTab extends AbstractDialogTab<Props, State> {
 
         return (
             <div
-                className = 'settings-sub-pane right'>
+                className = 'settings-sub-pane right'
+                key = 'settings-sub-pane-right'>
                 { showLanguageSettings && this._renderLanguageSelect() }
                 { this._renderFramerateSelect() }
             </div>
@@ -497,14 +404,14 @@ class MoreTab extends AbstractDialogTab<Props, State> {
      * @returns {ReactElement}
      */
     _renderSettingsLeft() {
-        const { showPrejoinSettings, showModeratorSettings } = this.props;
+        const { showPrejoinSettings } = this.props;
 
         return (
             <div
-                className = 'settings-sub-pane left'>
+                className = 'settings-sub-pane left'
+                key = 'settings-sub-pane-left'>
                 { showPrejoinSettings && this._renderPrejoinScreenSettings() }
                 { this._renderKeyboardShortcutCheckbox() }
-                { showModeratorSettings && this._renderModeratorSettings() }
             </div>
         );
     }
