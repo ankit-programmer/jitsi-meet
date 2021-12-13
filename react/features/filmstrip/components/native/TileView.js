@@ -11,6 +11,7 @@ import type { Dispatch } from 'redux';
 import { getLocalParticipant, getParticipantCountWithFake } from '../../../base/participants';
 import { connect } from '../../../base/redux';
 import { setVisibleRemoteParticipants } from '../../actions.web';
+import { getDisableSelfView } from '../../functions.any';
 
 import Thumbnail from './Thumbnail';
 import styles from './styles';
@@ -29,6 +30,11 @@ type Props = {
      * The number of columns.
      */
     _columns: number,
+
+    /**
+     * Whether or not to hide the self view.
+     */
+    _disableSelfView: boolean,
 
     /**
      * Application's viewport height.
@@ -146,7 +152,9 @@ class TileView extends PureComponent<Props> {
      * @returns {void}
      */
     _onViewableItemsChanged({ viewableItems = [] }: { viewableItems: Array<Object> }) {
-        if (viewableItems[0]?.index === 0) {
+        const { _disableSelfView } = this.props;
+
+        if (viewableItems[0]?.index === 0 && !_disableSelfView) {
             // Skip the local thumbnail.
             viewableItems.shift();
         }
@@ -157,8 +165,8 @@ class TileView extends PureComponent<Props> {
         }
 
         // We are off by one in the remote participants array.
-        const startIndex = viewableItems[0].index - 1;
-        const endIndex = viewableItems[viewableItems.length - 1].index - 1;
+        const startIndex = viewableItems[0].index - (_disableSelfView ? 0 : 1);
+        const endIndex = viewableItems[viewableItems.length - 1].index - (_disableSelfView ? 0 : 1);
 
         this.props.dispatch(setVisibleRemoteParticipants(startIndex, endIndex));
     }
@@ -221,10 +229,14 @@ class TileView extends PureComponent<Props> {
      * @returns {Participant[]}
      */
     _getSortedParticipants() {
-        const { _localParticipant, _remoteParticipants } = this.props;
+        const { _localParticipant, _remoteParticipants, _disableSelfView } = this.props;
 
         if (!_localParticipant) {
             return EMPTY_ARRAY;
+        }
+
+        if (_disableSelfView) {
+            return _remoteParticipants;
         }
 
         return [ _localParticipant?.id, ..._remoteParticipants ];
@@ -263,12 +275,14 @@ class TileView extends PureComponent<Props> {
 function _mapStateToProps(state) {
     const responsiveUi = state['features/base/responsive-ui'];
     const { remoteParticipants, tileViewDimensions } = state['features/filmstrip'];
+    const disableSelfView = getDisableSelfView(state);
     const { height } = tileViewDimensions.thumbnailSize;
     const { columns } = tileViewDimensions;
 
     return {
         _aspectRatio: responsiveUi.aspectRatio,
         _columns: columns,
+        _disableSelfView: disableSelfView,
         _height: responsiveUi.clientHeight,
         _localParticipant: getLocalParticipant(state),
         _participantCount: getParticipantCountWithFake(state),

@@ -1333,18 +1333,19 @@ export default {
     /**
      * Used by the Breakout Rooms feature to join a breakout room or go back to the main room.
      */
-    async joinRoom(roomName) {
+    async joinRoom(roomName, options) {
         // Reset VideoLayout. It's destroyed in features/video-layout/middleware.web.js so re-initialize it.
         VideoLayout.initLargeVideo();
         VideoLayout.resizeVideoArea();
 
-        // Destroy old tracks.
-        APP.store.dispatch(destroyLocalTracks());
+        // Restore initial state.
         this._localTracksInitialized = false;
+        this.isSharingScreen = false;
+        this.localPresenterVideo = null;
 
         this.roomName = roomName;
 
-        const { tryCreateLocalTracks, errors } = this.createInitialLocalTracks();
+        const { tryCreateLocalTracks, errors } = this.createInitialLocalTracks(options);
         const localTracks = await tryCreateLocalTracks;
 
         this._displayErrorsForCreateInitialLocalTracks(errors);
@@ -1710,10 +1711,10 @@ export default {
                 = this._turnScreenSharingOff.bind(this, didHaveVideo);
 
             const desktopVideoStream = desktopStreams.find(stream => stream.getType() === MEDIA_TYPE.VIDEO);
-            const dekstopAudioStream = desktopStreams.find(stream => stream.getType() === MEDIA_TYPE.AUDIO);
+            const desktopAudioStream = desktopStreams.find(stream => stream.getType() === MEDIA_TYPE.AUDIO);
 
-            if (dekstopAudioStream) {
-                dekstopAudioStream.on(
+            if (desktopAudioStream) {
+                desktopAudioStream.on(
                     JitsiTrackEvents.LOCAL_TRACK_STOPPED,
                     () => {
                         logger.debug(`Local screensharing audio track stopped. ${this.isSharingScreen}`);
@@ -2134,6 +2135,8 @@ export default {
                 }
             }
         });
+
+        room.on(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track => APP.store.dispatch(destroyLocalTracks(track)));
 
         room.on(JitsiConferenceEvents.SUBJECT_CHANGED,
             subject => APP.store.dispatch(conferenceSubjectChanged(subject)));

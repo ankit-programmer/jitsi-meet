@@ -11,8 +11,18 @@ import {
     createConference,
     getCurrentConference
 } from '../base/conference';
-import { setAudioMuted, setVideoMuted } from '../base/media';
+import {
+    MEDIA_TYPE,
+    setAudioMuted,
+    setVideoMuted
+} from '../base/media';
 import { getRemoteParticipants } from '../base/participants';
+import {
+    getLocalTracks,
+    isLocalCameraTrackMuted,
+    isLocalTrackMuted
+} from '../base/tracks';
+import { createDesiredLocalTracks } from '../base/tracks/actions';
 import {
     NOTIFICATION_TIMEOUT_TYPE,
     clearNotifications,
@@ -216,7 +226,12 @@ export function moveToRoom(roomId?: string) {
             dispatch(createConference(_roomId));
             dispatch(setAudioMuted(audio.muted));
             dispatch(setVideoMuted(video.muted));
+            dispatch(createDesiredLocalTracks());
         } else {
+            const localTracks = getLocalTracks(getState()['features/base/tracks']);
+            const isAudioMuted = isLocalTrackMuted(localTracks, MEDIA_TYPE.AUDIO);
+            const isVideoMuted = isLocalCameraTrackMuted(localTracks);
+
             try {
                 await APP.conference.leaveRoom(false /* doDisconnect */);
             } catch (error) {
@@ -225,7 +240,10 @@ export function moveToRoom(roomId?: string) {
                 // TODO: revisit why we don't dispatch CONFERENCE_LEFT here.
             }
 
-            APP.conference.joinRoom(_roomId);
+            APP.conference.joinRoom(_roomId, {
+                startWithAudioMuted: isAudioMuted,
+                startWithVideoMuted: isVideoMuted
+            });
         }
 
         if (goToMainRoom) {

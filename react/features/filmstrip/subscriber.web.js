@@ -1,5 +1,6 @@
 // @flow
 
+import { isMobileBrowser } from '../base/environment/utils';
 import { getParticipantCountWithFake } from '../base/participants';
 import { StateListenerRegistry, equals } from '../base/redux';
 import { clientResized } from '../base/responsive-ui';
@@ -26,8 +27,13 @@ import './subscriber.any';
  * Listens for changes in the number of participants to calculate the dimensions of the tile view grid and the tiles.
  */
 StateListenerRegistry.register(
-    /* selector */ getParticipantCountWithFake,
-    /* listener */ (numberOfParticipants, store) => {
+    /* selector */ state => {
+        return {
+            numberOfParticipants: getParticipantCountWithFake(state),
+            disableSelfView: state['features/base/settings'].disableSelfView
+        };
+    },
+    /* listener */ (currentState, store) => {
         const state = store.getState();
 
         if (shouldDisplayTileView(state)) {
@@ -38,6 +44,8 @@ StateListenerRegistry.register(
                 store.dispatch(setTileViewDimensions(gridDimensions));
             }
         }
+    }, {
+        deepEquals: true
     });
 
 /**
@@ -99,7 +107,9 @@ StateListenerRegistry.register(
 StateListenerRegistry.register(
     /* selector */ state => state['features/base/responsive-ui'].clientWidth < DISPLAY_DRAWER_THRESHOLD,
     /* listener */ (widthBelowThreshold, store) => {
-        store.dispatch(setOverflowDrawer(widthBelowThreshold));
+        if (isMobileBrowser()) {
+            store.dispatch(setOverflowDrawer(widthBelowThreshold));
+        }
     });
 
 /**

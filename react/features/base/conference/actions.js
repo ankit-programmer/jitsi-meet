@@ -27,7 +27,13 @@ import {
     participantRoleChanged,
     participantUpdated
 } from '../participants';
-import { getLocalTracks, replaceLocalTrack, trackAdded, trackRemoved } from '../tracks';
+import {
+    destroyLocalTracks,
+    getLocalTracks,
+    replaceLocalTrack,
+    trackAdded,
+    trackRemoved
+} from '../tracks';
 import { getBackendSafeRoomName } from '../util';
 
 import {
@@ -180,6 +186,8 @@ function _addConferenceListeners(conference, dispatch, state) {
                 dispatch(participantMutedUs(participantThatMutedUs, track));
             }
         });
+
+    conference.on(JitsiConferenceEvents.TRACK_UNMUTE_REJECTED, track => dispatch(destroyLocalTracks(track)));
 
     // Dispatches into features/base/participants follow:
     conference.on(
@@ -501,7 +509,7 @@ export function checkIfCanJoin() {
         const { authRequired, password }
             = getState()['features/base/conference'];
 
-        const replaceParticipant = getReplaceParticipant(APP.store.getState());
+        const replaceParticipant = getReplaceParticipant(getState());
 
         authRequired && dispatch(_conferenceWillJoin(authRequired));
         authRequired && authRequired.join(password, replaceParticipant);
