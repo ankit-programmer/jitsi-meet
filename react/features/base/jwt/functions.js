@@ -157,9 +157,10 @@ export async function getToken(url: URL = window.location) {
 
         }
         const serviceURL = dev ? "https://dev-api.intospace.io" : "https://api.intospace.io";
+        var roomName = encodeURIComponent(window.location.pathname);
         const headers = new Headers();
         headers.append("Authorization", `Bearer ${authToken}`);
-        const { token, room } = await (await fetch(`${serviceURL}/chat/meet/6135c320b298905ec8c743a3`, { method: "GET", headers: headers })).json();
+        const { token, room } = await (await fetch(`${serviceURL}/chat/meet/${roomName}`, { method: "GET", headers: headers })).json();
         jwt = token;
         console.log("JWT", token);
     }
@@ -175,8 +176,6 @@ function getValueFromCookie(key) {
     }
     cookie.split(';').some(data => {
         const [k, v] = data?.split("=");
-        console.log("KEY", k);
-        console.log("VALUE", v);
         if (key == k?.trim()) {
             value = v?.trim();
             return true;
