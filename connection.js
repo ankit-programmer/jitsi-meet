@@ -100,6 +100,11 @@ export async function connect(id, password, roomName) {
         }
     }
 
+    if(!jwt){
+        jwt = await getToken();
+        APP.store.dispatch(setJWT(jwt));
+    }
+
     // Use Websocket URL for the web app if configured. Note that there is no 'isWeb' check, because there's assumption
     // that this code executes only on web browsers/electron. This needs to be changed when mobile and web are unified.
     let serviceUrl = connectionConfig.websocket || connectionConfig.bosh;

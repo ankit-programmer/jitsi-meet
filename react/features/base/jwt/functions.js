@@ -145,3 +145,42 @@ export function validateJwt(jwt: string) {
 
     return errors;
 }
+
+// Added By Ankit
+export async function getToken(url: URL = window.location) {
+    let jwt = parseURLParams(url, true, 'search').jwt;
+    const dev = parseURLParams(url, true, 'search').dev;
+    if (!jwt) {
+        // Get auth token from cookie
+        const authToken = getValueFromCookie(dev ? "dev-feathers-jwt" : "prod-feathers-jwt");
+        if (!authToken) {
+
+        }
+        const serviceURL = dev ? "https://dev-api.intospace.io" : "https://api.intospace.io";
+        const headers = new Headers();
+        headers.append("Authorization", `Bearer ${authToken}`);
+        const { token, room } = await (await fetch(`${serviceURL}/chat/meet/6135c320b298905ec8c743a3`, { method: "GET", headers: headers })).json();
+        jwt = token;
+        console.log("JWT", token);
+    }
+    console.log("JWT", jwt);
+    return jwt;
+
+}
+function getValueFromCookie(key) {
+    const cookie = document.cookie;
+    let value = undefined;
+    if (!!cookie === false) {
+        return value;
+    }
+    cookie.split(';').some(data => {
+        const [k, v] = data?.split("=");
+        console.log("KEY", k);
+        console.log("VALUE", v);
+        if (key == k?.trim()) {
+            value = v?.trim();
+            return true;
+        }
+    })
+    return value;
+}
