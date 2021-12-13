@@ -1,6 +1,7 @@
 /* @flow */
 
 import jwtDecode from 'jwt-decode';
+import { getRoomName } from '../conference';
 
 import { parseURLParams } from '../util';
 
@@ -157,10 +158,9 @@ export async function getToken(url: URL = window.location) {
 
         }
         const serviceURL = dev ? "https://dev-api.intospace.io" : "https://api.intospace.io";
-        var roomName = encodeURIComponent(window.location.pathname);
         const headers = new Headers();
         headers.append("Authorization", `Bearer ${authToken}`);
-        const { token, room } = await (await fetch(`${serviceURL}/chat/meet/${roomName}`, { method: "GET", headers: headers })).json();
+        const { token, room } = await (await fetch(`${serviceURL}/chat/meet${getRoomName()}`, { method: "GET", headers: headers })).json();
         jwt = token;
         console.log("JWT", token);
     }
