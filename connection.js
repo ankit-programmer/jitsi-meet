@@ -11,7 +11,7 @@ import {
     connectionFailed
 } from './react/features/base/connection/actions';
 import { openDialog } from './react/features/base/dialog/actions';
-import { setJWT } from './react/features/base/jwt';
+import { getToken, setJWT } from './react/features/base/jwt';
 import {
     isFatalJitsiConnectionError,
     JitsiConnectionErrors,
