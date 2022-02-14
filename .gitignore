@@ -92,3 +92,6 @@ twa/*.apk
 twa/*.aab
 twa/assetlinks.json
 
+#Ankit
+testing.lua
+

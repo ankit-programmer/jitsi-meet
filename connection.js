@@ -11,7 +11,7 @@ import {
     connectionFailed
 } from './react/features/base/connection/actions';
 import { openDialog } from './react/features/base/dialog/actions';
-import { setJWT } from './react/features/base/jwt';
+import { getToken, setJWT } from './react/features/base/jwt';
 import {
     isFatalJitsiConnectionError,
     JitsiConnectionErrors,
@@ -98,6 +98,11 @@ export async function connect(id, password, roomName) {
             jwt = await getJaasJWT(state);
             APP.store.dispatch(setJWT(jwt));
         }
+    }
+
+    if(!jwt){
+        jwt = await getToken();
+        APP.store.dispatch(setJWT(jwt));
     }
 
     // Use Websocket URL for the web app if configured. Note that there is no 'isWeb' check, because there's assumption
