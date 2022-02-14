@@ -14,16 +14,12 @@ import { ColorSchemeRegistry } from '../../../../base/color-scheme';
 import { FIELD_UNDERLINE } from '../../../../base/dialog';
 import { getFeatureFlag, MEETING_PASSWORD_ENABLED } from '../../../../base/flags';
 import { translate } from '../../../../base/i18n';
-import { IconClose } from '../../../../base/icons';
 import JitsiScreen from '../../../../base/modal/components/JitsiScreen';
 import { isLocalParticipantModerator } from '../../../../base/participants';
 import { connect } from '../../../../base/redux';
 import { StyleType } from '../../../../base/styles';
 import BaseTheme from '../../../../base/ui/components/BaseTheme';
 import { isInBreakoutRoom } from '../../../../breakout-rooms/functions';
-import { goBack } from '../../../../conference/components/native/ConferenceNavigationContainerRef';
-import HeaderNavigationButton
-    from '../../../../conference/components/native/HeaderNavigationButton';
 import { toggleLobbyMode } from '../../../../lobby/actions.any';
 import LobbyModeSwitch
     from '../../../../lobby/components/native/LobbyModeSwitch';
@@ -107,11 +103,6 @@ type Props = {
     dispatch: Dispatch<any>,
 
     /**
-     * Default prop for navigation between screen components(React Navigation).
-     */
-    navigation: Object,
-
-    /**
      * Invoked to obtain translated strings.
      */
     t: Function
@@ -159,26 +150,6 @@ class SecurityDialog extends PureComponent<Props, State> {
         this._onSubmit = this._onSubmit.bind(this);
         this._onToggleLobbyMode = this._onToggleLobbyMode.bind(this);
         this._onAddPassword = this._onAddPassword.bind(this);
-    }
-
-    /**
-     * Implements React's {@link Component#componentDidMount()}. Invoked
-     * immediately after this component is mounted.
-     *
-     * @inheritdoc
-     * @returns {void}
-     */
-    componentDidMount() {
-        const { navigation } = this.props;
-
-        navigation.setOptions({
-            headerLeft: () => (
-                <HeaderNavigationButton
-                    onPress = { goBack }
-                    src = { IconClose }
-                    style = { styles.headerCloseButton } />
-            )
-        });
     }
 
     /**
