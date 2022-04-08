@@ -157,9 +157,11 @@ export async function getToken(url: URL = window.location) {
         if (!authToken) {
 
         }
-        const serviceURL = dev ? "https://dev-api.intospace.io" : "https://api.intospace.io";
+        const serviceURL = dev ? "https://dev-api.intospace.io" : "https://beta-api.intospace.io";
         const headers = new Headers();
-        headers.append("Authorization", `Bearer ${authToken}`);
+        if(authToken){
+            headers.append("Authorization", `Bearer ${authToken}`);
+        }
         const { token, room } = await (await fetch(`${serviceURL}/chat/meet/${getRoomName()}`, { method: "GET", headers: headers })).json();
         jwt = token;
         console.log("JWT", token);
