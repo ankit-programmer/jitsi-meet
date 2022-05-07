@@ -6,25 +6,64 @@ import { useSelector, useDispatch } from 'react-redux';
 
 import { Dialog } from '../../../base/dialog';
 import { escapeRegexp } from '../../../base/util';
-import { resetSearchCriteria, toggleFacialExpressions, initSearch } from '../../actions';
+import { resetSearchCriteria, toggleFaceExpressions, initSearch } from '../../actions';
 import {
     DISPLAY_SWITCH_BREAKPOINT,
     MOBILE_BREAKPOINT,
     RESIZE_SEARCH_SWITCH_CONTAINER_BREAKPOINT
 } from '../../constants';
 
-import FacialExpressionsSwitch from './FacialExpressionsSwitch';
+import FaceExpressionsSwitch from './FaceExpressionsSwitch';
 import SpeakerStatsLabels from './SpeakerStatsLabels';
 import SpeakerStatsList from './SpeakerStatsList';
 import SpeakerStatsSearch from './SpeakerStatsSearch';
 
 const useStyles = makeStyles(theme => {
     return {
+        speakerStats: {
+            '& .row': {
+                display: 'flex',
+                alignItems: 'center',
+
+                '& .avatar': {
+                    width: '32px',
+                    marginRight: theme.spacing(3)
+                },
+
+                '& .name-time': {
+                    width: 'calc(100% - 48px)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                },
+
+                '& .name-time_expressions-on': {
+                    width: 'calc(47% - 48px)'
+                },
+
+                '& .expressions': {
+                    width: 'calc(53% - 29px)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+
+                    '& .expression': {
+                        width: '30px',
+                        textAlign: 'center'
+                    }
+                }
+            }
+        },
+        footer: {
+            display: 'none !important'
+        },
+        labelsContainer: {
+            position: 'relative'
+        },
         separator: {
             position: 'absolute',
-            width: '100%',
+            width: 'calc(100% + 48px)',
             height: 1,
-            left: 0,
+            left: -24,
             backgroundColor: theme.palette.border02
         },
         searchSwitchContainer: {
@@ -49,16 +88,16 @@ const useStyles = makeStyles(theme => {
 });
 
 const SpeakerStats = () => {
-    const { enableDisplayFacialExpressions } = useSelector(state => state['features/base/config']);
-    const { showFacialExpressions } = useSelector(state => state['features/speaker-stats']);
+    const { faceLandmarks } = useSelector(state => state['features/base/config']);
+    const { showFaceExpressions } = useSelector(state => state['features/speaker-stats']);
     const { clientWidth } = useSelector(state => state['features/base/responsive-ui']);
-    const displaySwitch = enableDisplayFacialExpressions && clientWidth > DISPLAY_SWITCH_BREAKPOINT;
+    const displaySwitch = faceLandmarks?.enableDisplayFaceExpressions && clientWidth > DISPLAY_SWITCH_BREAKPOINT;
     const displayLabels = clientWidth > MOBILE_BREAKPOINT;
     const dispatch = useDispatch();
     const classes = useStyles();
 
-    const onToggleFacialExpressions = useCallback(() =>
-        dispatch(toggleFacialExpressions())
+    const onToggleFaceExpressions = useCallback(() =>
+        dispatch(toggleFaceExpressions())
     , [ dispatch ]);
 
     const onSearch = useCallback((criteria = '') => {
@@ -67,22 +106,23 @@ const SpeakerStats = () => {
     , [ dispatch ]);
 
     useEffect(() => {
-        showFacialExpressions && !displaySwitch && dispatch(toggleFacialExpressions());
+        showFaceExpressions && !displaySwitch && dispatch(toggleFaceExpressions());
     }, [ clientWidth ]);
     useEffect(() => () => dispatch(resetSearchCriteria()), []);
 
     return (
         <Dialog
             cancelKey = 'dialog.close'
+            classes = {{ footer: classes.footer }}
             hideCancelButton = { true }
             submitDisabled = { true }
             titleKey = 'speakerStats.speakerStats'
-            width = { showFacialExpressions ? '664px' : 'small' }>
-            <div className = 'speaker-stats'>
+            width = { showFaceExpressions ? '664px' : 'small' }>
+            <div className = { classes.speakerStats }>
                 <div
                     className = {
                         `${classes.searchSwitchContainer}
-                        ${showFacialExpressions ? classes.searchSwitchContainerExpressionsOn : ''}`
+                        ${showFaceExpressions ? classes.searchSwitchContainerExpressionsOn : ''}`
                     }>
                     <div
                         className = {
@@ -94,17 +134,17 @@ const SpeakerStats = () => {
                     </div>
 
                     { displaySwitch
-                    && <FacialExpressionsSwitch
-                        onChange = { onToggleFacialExpressions }
-                        showFacialExpressions = { showFacialExpressions } />
+                    && <FaceExpressionsSwitch
+                        onChange = { onToggleFaceExpressions }
+                        showFaceExpressions = { showFaceExpressions } />
                     }
                 </div>
                 { displayLabels && (
-                    <>
+                    <div className = { classes.labelsContainer }>
                         <SpeakerStatsLabels
-                            showFacialExpressions = { showFacialExpressions ?? false } />
+                            showFaceExpressions = { showFaceExpressions ?? false } />
                         <div className = { classes.separator } />
-                    </>
+                    </div>
                 )}
                 <SpeakerStatsList />
             </div>

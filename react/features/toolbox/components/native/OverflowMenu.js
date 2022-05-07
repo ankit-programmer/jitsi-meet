@@ -23,8 +23,10 @@ import { getMovableButtons } from '../../functions.native';
 import HelpButton from '../HelpButton';
 
 import AudioOnlyButton from './AudioOnlyButton';
+import LinkToSalesforceButton from './LinkToSalesforceButton';
+import OpenCarmodeButton from './OpenCarmodeButton';
 import RaiseHandButton from './RaiseHandButton';
-import ScreenSharingButton from './ScreenSharingButton.js';
+import ScreenSharingButton from './ScreenSharingButton';
 import ToggleCameraButton from './ToggleCameraButton';
 
 /**
@@ -109,7 +111,11 @@ class OverflowMenu extends PureComponent<Props, State> {
      * @returns {ReactElement}
      */
     render() {
-        const { _bottomSheetStyles, _width, _reactionsEnabled } = this.props;
+        const {
+            _bottomSheetStyles,
+            _width,
+            _reactionsEnabled
+        } = this.props;
         const toolbarButtons = getMovableButtons(_width);
 
         const buttonProps = {
@@ -138,12 +144,14 @@ class OverflowMenu extends PureComponent<Props, State> {
                     ? this._renderReactionMenu
                     : null }>
                 <ParticipantsPaneButton { ...topButtonProps } />
+                <OpenCarmodeButton { ...topButtonProps } />
                 <AudioOnlyButton { ...buttonProps } />
                 {!_reactionsEnabled && !toolbarButtons.has('raisehand') && <RaiseHandButton { ...buttonProps } />}
                 <Divider style = { styles.divider } />
                 <SecurityDialogButton { ...buttonProps } />
                 <RecordButton { ...buttonProps } />
                 <LiveStreamButton { ...buttonProps } />
+                <LinkToSalesforceButton { ...buttonProps } />
                 <Divider style = { styles.divider } />
                 <SharedVideoButton { ...buttonProps } />
                 <ScreenSharingButton { ...buttonProps } />

@@ -1,13 +1,10 @@
-// @flow
-
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useCallback } from 'react';
 
 import { connect } from '../../../base/redux';
 import { DialInSummary } from '../../../invite';
-import BlankPage from '../../../welcome/components/BlankPage';
+import { _ROOT_NAVIGATION_READY } from '../actionTypes';
 import { rootNavigationRef } from '../rootNavigationContainerRef';
 import { screen } from '../routes';
 import {
@@ -16,6 +13,7 @@ import {
     navigationContainerTheme
 } from '../screenOptions';
 
+import ConnectingPage from './ConnectingPage';
 import ConferenceNavigationContainer
     from './conference/components/ConferenceNavigationContainer';
 import WelcomePageNavigationContainer from './welcome/components/WelcomePageNavigationContainer';
@@ -27,34 +25,55 @@ const RootStack = createStackNavigator();
 type Props = {
 
     /**
+     * Redux dispatch function.
+     */
+    dispatch: Function,
+
+    /**
     * Is welcome page available?
     */
     isWelcomePageAvailable: boolean
 }
 
 
-const RootNavigationContainer = ({ isWelcomePageAvailable }: Props) => (
-    <SafeAreaProvider>
+const RootNavigationContainer = ({ dispatch, isWelcomePageAvailable }: Props) => {
+    const initialRouteName = isWelcomePageAvailable
+        ? screen.root : screen.connecting;
+    const onReady = useCallback(() => {
+        dispatch({
+            type: _ROOT_NAVIGATION_READY,
+            ready: true
+        });
+    }, [ dispatch ]);
+
+    return (
         <NavigationContainer
             independent = { true }
+            onReady = { onReady }
             ref = { rootNavigationRef }
             theme = { navigationContainerTheme }>
             <RootStack.Navigator
-                initialRouteName = { screen.root }>
+                initialRouteName = { initialRouteName }>
                 {
                     isWelcomePageAvailable
-                        ? <RootStack.Screen
-                            component = { WelcomePageNavigationContainer }
-                            name = { screen.root }
-                            options = { drawerNavigatorScreenOptions } />
-                        : <RootStack.Screen
-                            component = { BlankPage }
-                            name = { screen.root } />
+                        && <>
+                            <RootStack.Screen
+                                component = { WelcomePageNavigationContainer }
+                                name = { screen.root }
+                                options = { drawerNavigatorScreenOptions } />
+                            <RootStack.Screen
+                                component = { DialInSummary }
+                                name = { screen.dialInSummary }
+                                options = { dialInSummaryScreenOptions } />
+                        </>
                 }
                 <RootStack.Screen
-                    component = { DialInSummary }
-                    name = { screen.dialInSummary }
-                    options = { dialInSummaryScreenOptions } />
+                    component = { ConnectingPage }
+                    name = { screen.connecting }
+                    options = {{
+                        gestureEnabled: false,
+                        headerShown: false
+                    }} />
                 <RootStack.Screen
                     component = { ConferenceNavigationContainer }
                     name = { screen.conference.root }
@@ -64,8 +83,8 @@ const RootNavigationContainer = ({ isWelcomePageAvailable }: Props) => (
                     }} />
             </RootStack.Navigator>
         </NavigationContainer>
-    </SafeAreaProvider>
-);
+    );
+};
 
 /**
  * Maps part of the Redux store to the props of this component.
@@ -80,4 +99,3 @@ function mapStateToProps(state: Object) {
 }
 
 export default connect(mapStateToProps)(RootNavigationContainer);
-

@@ -16,6 +16,7 @@ import {
     PARTICIPANT_LEFT,
     PARTICIPANT_UPDATED,
     PIN_PARTICIPANT,
+    SCREENSHARE_PARTICIPANT_NAME_CHANGED,
     SET_LOADABLE_AVATAR_URL,
     RAISE_HAND_UPDATED
 } from './actionTypes';
@@ -24,6 +25,7 @@ import {
 } from './constants';
 import {
     getLocalParticipant,
+    getVirtualScreenshareParticipantOwnerId,
     getNormalizedDisplayName,
     getParticipantDisplayName,
     getParticipantById
@@ -433,6 +435,25 @@ export function participantRoleChanged(id, role) {
 }
 
 /**
+ * Action to signal that a participant's display name has changed.
+ *
+ * @param {string} id - Screenshare participant's ID.
+ * @param {name} name - The new display name of the screenshare participant's owner.
+ * @returns {{
+ *     type: SCREENSHARE_PARTICIPANT_NAME_CHANGED,
+ *     id: string,
+ *     name: string
+ * }}
+ */
+export function screenshareParticipantDisplayNameChanged(id, name) {
+    return {
+        type: SCREENSHARE_PARTICIPANT_NAME_CHANGED,
+        id,
+        name
+    };
+}
+
+/**
  * Action to signal that some of participant properties has been changed.
  *
  * @param {Participant} participant={} - Information about participant. To
@@ -479,7 +500,37 @@ export function participantMutedUs(participant, track) {
             titleArguments: {
                 participantDisplayName: getParticipantDisplayName(getState, participant.getId())
             }
-        }, NOTIFICATION_TIMEOUT_TYPE.LONG));
+        }, NOTIFICATION_TIMEOUT_TYPE.MEDIUM));
+    };
+}
+
+/**
+ * Action to create a virtual screenshare participant.
+ *
+ * @param {(string)} sourceName - JitsiTrack instance.
+ * @param {(boolean)} local - JitsiTrack instance.
+ * @returns {Function}
+ */
+export function createVirtualScreenshareParticipant(sourceName, local) {
+    return (dispatch, getState) => {
+        const state = getState();
+        const ownerId = getVirtualScreenshareParticipantOwnerId(sourceName);
+        const owner = getParticipantById(state, ownerId);
+        const ownerName = owner.name;
+
+        if (!ownerName) {
+            logger.error(`Failed to create a screenshare participant for sourceName: ${sourceName}`);
+
+            return;
+        }
+
+        dispatch(participantJoined({
+            conference: state['features/base/conference'].conference,
+            id: sourceName,
+            isVirtualScreenshareParticipant: true,
+            isLocalScreenShare: local,
+            name: ownerName
+        }));
     };
 }
 

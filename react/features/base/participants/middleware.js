@@ -69,6 +69,7 @@ import {
     isLocalParticipantModerator
 } from './functions';
 import { PARTICIPANT_JOINED_FILE, PARTICIPANT_LEFT_FILE } from './sounds';
+import './subscriber';
 
 declare var APP: Object;
 
@@ -210,14 +211,22 @@ MiddlewareRegistry.register(store => next => action => {
     }
 
     case PARTICIPANT_JOINED: {
-        _maybePlaySounds(store, action);
+        const { isVirtualScreenshareParticipant } = action.participant;
+
+        // Do not play sounds when a virtual participant tile is created for screenshare.
+        !isVirtualScreenshareParticipant && _maybePlaySounds(store, action);
 
         return _participantJoinedOrUpdated(store, next, action);
     }
 
-    case PARTICIPANT_LEFT:
-        _maybePlaySounds(store, action);
+    case PARTICIPANT_LEFT: {
+        const { isVirtualScreenshareParticipant } = action.participant;
+
+        // Do not play sounds when a tile for screenshare is removed.
+        !isVirtualScreenshareParticipant && _maybePlaySounds(store, action);
+
         break;
+    }
 
     case PARTICIPANT_UPDATED:
         return _participantJoinedOrUpdated(store, next, action);

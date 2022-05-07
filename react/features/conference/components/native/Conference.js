@@ -1,11 +1,12 @@
 // @flow
 
 import React from 'react';
-import { NativeModules, SafeAreaView, StatusBar, View } from 'react-native';
+import { BackHandler, NativeModules, SafeAreaView, StatusBar, View } from 'react-native';
 import { withSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { appNavigate } from '../../../app/actions';
 import { PIP_ENABLED, FULLSCREEN_ENABLED, getFeatureFlag } from '../../../base/flags';
+import { getParticipantCount } from '../../../base/participants';
 import { Container, LoadingIndicator, TintedView } from '../../../base/react';
 import { connect } from '../../../base/redux';
 import { ASPECT_RATIO_NARROW } from '../../../base/responsive-ui/constants';
@@ -22,7 +23,6 @@ import { CalleeInfoContainer } from '../../../invite';
 import { LargeVideo } from '../../../large-video';
 import { KnockingParticipantList } from '../../../lobby/components/native';
 import { getIsLobbyVisible } from '../../../lobby/functions';
-import { BackButtonRegistry } from '../../../mobile/back-button';
 import { navigate }
     from '../../../mobile/navigation/components/conference/ConferenceNavigationContainerRef';
 import { screen } from '../../../mobile/navigation/routes';
@@ -35,6 +35,7 @@ import {
     abstractMapStateToProps
 } from '../AbstractConference';
 import type { AbstractProps } from '../AbstractConference';
+import { isConnecting } from '../functions';
 
 import AlwaysOnLabels from './AlwaysOnLabels';
 import ExpandedLabelPopup from './ExpandedLabelPopup';
@@ -76,6 +77,11 @@ type Props = AbstractProps & {
      * The indicator which determines whether fullscreen (immersive) mode is enabled.
      */
     _fullscreenEnabled: boolean,
+
+    /**
+     * The indicator which determines if the conference type is one to one.
+     */
+    _isOneToOneConference: boolean,
 
     /**
      * The indicator which determines if the participants pane is open.
@@ -166,7 +172,7 @@ class Conference extends AbstractConference<Props, State> {
      * @returns {void}
      */
     componentDidMount() {
-        BackButtonRegistry.addListener(this._onHardwareBackPress);
+        BackHandler.addEventListener('hardwareBackPress', this._onHardwareBackPress);
     }
 
     /**
@@ -178,7 +184,7 @@ class Conference extends AbstractConference<Props, State> {
         const { _showLobby } = this.props;
 
         if (!prevProps._showLobby && _showLobby) {
-            navigate(screen.lobby);
+            navigate(screen.lobby.root);
         }
 
         if (prevProps._showLobby && !_showLobby) {
@@ -196,7 +202,7 @@ class Conference extends AbstractConference<Props, State> {
      */
     componentWillUnmount() {
         // Tear handling any hardware button presses for back navigation down.
-        BackButtonRegistry.removeListener(this._onHardwareBackPress);
+        BackHandler.removeEventListener('hardwareBackPress', this._onHardwareBackPress);
 
         clearTimeout(this._expandedLabelTimeout.current);
     }
@@ -316,6 +322,7 @@ class Conference extends AbstractConference<Props, State> {
     _renderContent() {
         const {
             _connecting,
+            _isOneToOneConference,
             _largeVideoParticipantId,
             _reducedUI,
             _shouldDisplayTileView,
@@ -358,9 +365,15 @@ class Conference extends AbstractConference<Props, State> {
 
                     <Captions onPress = { this._onClick } />
 
-                    { _shouldDisplayTileView || <Container style = { styles.displayNameContainer }>
-                        <DisplayNameLabel participantId = { _largeVideoParticipantId } />
-                    </Container> }
+                    {
+                        _shouldDisplayTileView || (
+                            !_isOneToOneConference
+                            && <Container style = { styles.displayNameContainer }>
+                                <DisplayNameLabel
+                                    participantId = { _largeVideoParticipantId } />
+                            </Container>
+                        )
+                    }
 
                     <LonelyMeetingExperience />
 
@@ -484,35 +497,18 @@ class Conference extends AbstractConference<Props, State> {
  * @returns {Props}
  */
 function _mapStateToProps(state) {
-    const { connecting, connection } = state['features/base/connection'];
-    const {
-        conference,
-        joining,
-        membersOnly,
-        leaving
-    } = state['features/base/conference'];
     const { isOpen } = state['features/participants-pane'];
     const { aspectRatio, reducedUI } = state['features/base/responsive-ui'];
-
-    // XXX There is a window of time between the successful establishment of the
-    // XMPP connection and the subsequent commencement of joining the MUC during
-    // which the app does not appear to be doing anything according to the redux
-    // state. In order to not toggle the _connecting props during the window of
-    // time in question, define _connecting as follows:
-    // - the XMPP connection is connecting, or
-    // - the XMPP connection is connected and the conference is joining, or
-    // - the XMPP connection is connected and we have no conference yet, nor we
-    //   are leaving one.
-    const connecting_
-        = connecting || (connection && (!membersOnly && (joining || (!conference && !leaving))));
+    const participantCount = getParticipantCount(state);
 
     return {
         ...abstractMapStateToProps(state),
         _aspectRatio: aspectRatio,
         _calendarEnabled: isCalendarEnabled(state),
-        _connecting: Boolean(connecting_),
+        _connecting: isConnecting(state),
         _filmstripVisible: isFilmstripVisible(state),
         _fullscreenEnabled: getFeatureFlag(state, FULLSCREEN_ENABLED, true),
+        _isOneToOneConference: Boolean(participantCount === 2),
         _isParticipantsPaneOpen: isOpen,
         _largeVideoParticipantId: state['features/large-video'].participantId,
         _pictureInPictureEnabled: getFeatureFlag(state, PIP_ENABLED),

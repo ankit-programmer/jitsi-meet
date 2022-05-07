@@ -7,9 +7,15 @@ import { getSourceNameSignalingFeatureFlag } from '../base/config';
 import { MEDIA_TYPE } from '../base/media';
 import { getLocalParticipant, getParticipantCount } from '../base/participants';
 import { StateListenerRegistry } from '../base/redux';
-import { getTrackSourceNameByMediaTypeAndParticipant } from '../base/tracks';
+import { getRemoteScreenSharesSourceNames, getTrackSourceNameByMediaTypeAndParticipant } from '../base/tracks';
 import { reportError } from '../base/util';
-import { shouldDisplayTileView } from '../video-layout';
+import { getActiveParticipantsIds } from '../filmstrip/functions.web';
+import {
+    getVideoQualityForLargeVideo,
+    getVideoQualityForResizableFilmstripThumbnails,
+    getVideoQualityForStageThumbnails,
+    shouldDisplayTileView
+} from '../video-layout';
 
 import { setMaxReceiverVideoQuality } from './actions';
 import { VIDEO_QUALITY_LEVELS } from './constants';
@@ -29,6 +35,12 @@ StateListenerRegistry.register(
     /* listener */ debounce((visibleRemoteParticipants, store) => {
         _updateReceiverVideoConstraints(store);
     }, 100));
+
+StateListenerRegistry.register(
+    /* selector */ state => state['features/base/tracks'],
+    /* listener */(remoteTracks, store) => {
+        _updateReceiverVideoConstraints(store);
+    });
 
 /**
  * Handles the use case when the on-stage participant has changed.
@@ -71,6 +83,28 @@ StateListenerRegistry.register(
     /* listener */ (lastN, store) => {
         _updateReceiverVideoConstraints(store);
     });
+
+/**
+ * Updates the receiver constraints when the tiles in the resizable filmstrip change dimensions.
+ */
+StateListenerRegistry.register(
+    state => getVideoQualityForResizableFilmstripThumbnails(state),
+    (_, store) => {
+        _updateReceiverVideoConstraints(store);
+    }
+);
+
+/**
+ * Updates the receiver constraints when the stage participants change.
+ */
+StateListenerRegistry.register(
+    state => getActiveParticipantsIds(state).sort(),
+    (_, store) => {
+        _updateReceiverVideoConstraints(store);
+    }, {
+        deepEquals: true
+    }
+);
 
 /**
  * StateListenerRegistry provides a reliable way of detecting changes to
@@ -199,10 +233,13 @@ function _updateReceiverVideoConstraints({ getState }) {
     const tracks = state['features/base/tracks'];
     const sourceNameSignaling = getSourceNameSignalingFeatureFlag(state);
     const localParticipantId = getLocalParticipant(state).id;
+    const activeParticipantsIds = getActiveParticipantsIds(state);
 
     let receiverConstraints;
 
     if (sourceNameSignaling) {
+        const remoteScreenSharesSourceNames = getRemoteScreenSharesSourceNames(state, remoteScreenShares);
+
         receiverConstraints = {
             constraints: {},
             defaultConstraints: { 'maxHeight': VIDEO_QUALITY_LEVELS.NONE },
@@ -212,22 +249,35 @@ function _updateReceiverVideoConstraints({ getState }) {
         };
         const visibleRemoteTrackSourceNames = [];
         let largeVideoSourceName;
+        const activeParticipantsSources = [];
 
         if (visibleRemoteParticipants?.size) {
             visibleRemoteParticipants.forEach(participantId => {
-                const sourceName = getTrackSourceNameByMediaTypeAndParticipant(tracks, MEDIA_TYPE.VIDEO, participantId);
+                let sourceName;
+
+                if (remoteScreenSharesSourceNames.includes(participantId)) {
+                    sourceName = participantId;
+                } else {
+                    sourceName = getTrackSourceNameByMediaTypeAndParticipant(tracks, MEDIA_TYPE.VIDEO, participantId);
+                }
 
                 if (sourceName) {
                     visibleRemoteTrackSourceNames.push(sourceName);
+                    if (activeParticipantsIds.find(id => id === participantId)) {
+                        activeParticipantsSources.push(sourceName);
+                    }
                 }
             });
         }
 
         if (localParticipantId !== largeVideoParticipantId) {
-            largeVideoSourceName = getTrackSourceNameByMediaTypeAndParticipant(
-                tracks, MEDIA_TYPE.VIDEO,
-                largeVideoParticipantId
-            );
+            if (remoteScreenSharesSourceNames.includes(largeVideoParticipantId)) {
+                largeVideoSourceName = largeVideoParticipantId;
+            } else {
+                largeVideoSourceName = getTrackSourceNameByMediaTypeAndParticipant(
+                    tracks, MEDIA_TYPE.VIDEO, largeVideoParticipantId
+                );
+            }
         }
 
         // Tile view.
@@ -241,12 +291,8 @@ function _updateReceiverVideoConstraints({ getState }) {
             });
 
             // Prioritize screenshare in tile view.
-            if (remoteScreenShares?.length) {
-                const remoteScreenShareSourceNames = remoteScreenShares.map(remoteScreenShare =>
-                    getTrackSourceNameByMediaTypeAndParticipant(tracks, MEDIA_TYPE.VIDEO, remoteScreenShare)
-                );
-
-                receiverConstraints.selectedSources = remoteScreenShareSourceNames;
+            if (remoteScreenSharesSourceNames?.length) {
+                receiverConstraints.selectedSources = remoteScreenSharesSourceNames;
             }
 
         // Stage view.
@@ -256,15 +302,34 @@ function _updateReceiverVideoConstraints({ getState }) {
             }
 
             if (visibleRemoteTrackSourceNames?.length) {
+                const qualityLevel = getVideoQualityForResizableFilmstripThumbnails(state);
+                const stageParticipantsLevel = getVideoQualityForStageThumbnails(state);
+
                 visibleRemoteTrackSourceNames.forEach(sourceName => {
-                    receiverConstraints.constraints[sourceName] = { 'maxHeight': VIDEO_QUALITY_LEVELS.LOW };
+                    const isStageParticipant = activeParticipantsSources.find(name => name === sourceName);
+                    const quality = Math.min(maxFrameHeight, isStageParticipant
+                        ? stageParticipantsLevel : qualityLevel);
+
+                    receiverConstraints.constraints[sourceName] = { 'maxHeight': quality };
                 });
             }
 
             if (largeVideoSourceName) {
-                receiverConstraints.constraints[largeVideoSourceName] = { 'maxHeight': maxFrameHeight };
+                let quality = maxFrameHeight;
+
+                if (navigator.product !== 'ReactNative'
+                    && !remoteScreenShares.find(id => id === largeVideoParticipantId)) {
+                    quality = getVideoQualityForLargeVideo();
+                }
+                receiverConstraints.constraints[largeVideoSourceName] = { 'maxHeight': quality };
                 receiverConstraints.onStageSources = [ largeVideoSourceName ];
             }
+        }
+
+        if (remoteScreenSharesSourceNames?.length) {
+            remoteScreenSharesSourceNames.forEach(sourceName => {
+                receiverConstraints.constraints[sourceName] = { 'maxHeight': VIDEO_QUALITY_LEVELS.ULTRA };
+            });
         }
 
     } else {
@@ -277,7 +342,6 @@ function _updateReceiverVideoConstraints({ getState }) {
         };
 
         // Tile view.
-        // eslint-disable-next-line no-lonely-if
         if (shouldDisplayTileView(state)) {
             if (!visibleRemoteParticipants?.size) {
                 return;
@@ -297,13 +361,26 @@ function _updateReceiverVideoConstraints({ getState }) {
             }
 
             if (visibleRemoteParticipants?.size > 0) {
+                const qualityLevel = getVideoQualityForResizableFilmstripThumbnails(state);
+                const stageParticipantsLevel = getVideoQualityForStageThumbnails(state);
+
                 visibleRemoteParticipants.forEach(participantId => {
-                    receiverConstraints.constraints[participantId] = { 'maxHeight': VIDEO_QUALITY_LEVELS.LOW };
+                    const isStageParticipant = activeParticipantsIds.find(id => id === participantId);
+                    const quality = Math.min(maxFrameHeight, isStageParticipant
+                        ? stageParticipantsLevel : qualityLevel);
+
+                    receiverConstraints.constraints[participantId] = { 'maxHeight': quality };
                 });
             }
 
             if (largeVideoParticipantId) {
-                receiverConstraints.constraints[largeVideoParticipantId] = { 'maxHeight': maxFrameHeight };
+                let quality = maxFrameHeight;
+
+                if (navigator.product !== 'ReactNative'
+                    && !remoteScreenShares.find(id => id === largeVideoParticipantId)) {
+                    quality = getVideoQualityForLargeVideo();
+                }
+                receiverConstraints.constraints[largeVideoParticipantId] = { 'maxHeight': quality };
                 receiverConstraints.onStageEndpoints = [ largeVideoParticipantId ];
             }
         }

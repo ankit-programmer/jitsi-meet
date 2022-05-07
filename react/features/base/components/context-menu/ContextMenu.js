@@ -12,6 +12,11 @@ import participantsPaneTheme from '../themes/participantsPaneTheme.json';
 type Props = {
 
     /**
+     * Accessibility label for menu container.
+     */
+    accessibilityLabel?: string,
+
+    /**
      * Children of the context menu.
      */
     children: React$Node,
@@ -52,6 +57,11 @@ type Props = {
     onClick?: Function,
 
     /**
+     * Keydown handler.
+     */
+    onKeyDown?: Function,
+
+    /**
      * Callback for drawer close.
      */
     onDrawerClose?: Function,
@@ -67,6 +77,8 @@ type Props = {
     onMouseLeave?: Function
 };
 
+const MAX_HEIGHT = 400;
+
 const useStyles = makeStyles(theme => {
     return {
         contextMenu: {
@@ -80,7 +92,9 @@ const useStyles = makeStyles(theme => {
             position: 'absolute',
             right: `${participantsPaneTheme.panePadding}px`,
             top: 0,
-            zIndex: 2
+            zIndex: 2,
+            maxHeight: `${MAX_HEIGHT}px`,
+            overflowY: 'auto'
         },
 
         contextMenuHidden: {
@@ -107,6 +121,7 @@ const useStyles = makeStyles(theme => {
 });
 
 const ContextMenu = ({
+    accessibilityLabel,
     children,
     className,
     entity,
@@ -115,6 +130,7 @@ const ContextMenu = ({
     isDrawerOpen,
     offsetTarget,
     onClick,
+    onKeyDown,
     onDrawerClose,
     onMouseEnter,
     onMouseLeave
@@ -136,14 +152,15 @@ const ContextMenu = ({
             const { current: container } = containerRef;
             const { offsetTop, offsetParent: { offsetHeight, scrollTop } } = offsetTarget;
             const outerHeight = getComputedOuterHeight(container);
+            const height = Math.min(MAX_HEIGHT, outerHeight);
 
-            container.style.top = offsetTop + outerHeight > offsetHeight + scrollTop
+            container.style.top = offsetTop + height > offsetHeight + scrollTop
                 ? `${offsetTop - outerHeight}`
                 : `${offsetTop}`;
 
             setIsHidden(false);
         } else {
-            setIsHidden(true);
+            hidden === undefined && setIsHidden(true);
         }
     }, [ entity, offsetTarget, _overflowDrawer ]);
 
@@ -174,12 +191,14 @@ const ContextMenu = ({
             </Drawer>
         </JitsiPortal>
         : <div
+            aria-label = { accessibilityLabel }
             className = { clsx(participantsPaneTheme.ignoredChildClassName,
                 styles.contextMenu,
                 isHidden && styles.contextMenuHidden,
                 className
             ) }
             onClick = { onClick }
+            onKeyDown = { onKeyDown }
             onMouseEnter = { onMouseEnter }
             onMouseLeave = { onMouseLeave }
             ref = { containerRef }>

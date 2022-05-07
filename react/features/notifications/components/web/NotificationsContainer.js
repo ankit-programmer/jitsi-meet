@@ -3,6 +3,7 @@
 import { FlagGroupContext } from '@atlaskit/flag/flag-group';
 import { AtlasKitThemeProvider } from '@atlaskit/theme';
 import { withStyles } from '@material-ui/styles';
+import clsx from 'clsx';
 import React, { Component } from 'react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
@@ -67,10 +68,6 @@ const useStyles = theme => {
             maxWidth: 'calc(100% - 32px)'
         },
 
-        containerChatOpen: {
-            left: '331px'
-        },
-
         transitionGroup: {
             '& > *': {
                 marginBottom: '20px',
@@ -104,6 +101,10 @@ const useStyles = theme => {
 
                 '&.error': {
                     backgroundColor: theme.palette.iconError
+                },
+
+                '&.success': {
+                    backgroundColor: theme.palette.success01
                 },
 
                 '&.warning': {
@@ -162,12 +163,9 @@ class NotificationsContainer extends Component<Props> {
             <AtlasKitThemeProvider mode = 'light'>
                 <FlagGroupContext.Provider value = { this._api }>
                     <div
-                        className = { `${this.props.classes.container} ${this.props.portal
-                            ? this.props.classes.containerPortal
-                            : this.props._isChatOpen
-                                ? this.props.classes.containerChatOpen
-                                : ''}`
-                        }
+                        className = { clsx(this.props.classes.container, {
+                            [this.props.classes.containerPortal]: this.props.portal
+                        }) }
                         id = 'notifications-container'>
                         <TransitionGroup className = { this.props.classes.transitionGroup }>
                             {this._renderFlags()}

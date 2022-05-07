@@ -65,7 +65,7 @@ const CONFERENCE_HEADER_MAPPING = {
     hideConferenceTimer: [ 'conference-timer' ],
     hideConferenceSubject: [ 'subject' ],
     hideParticipantsStats: [ 'participants-count' ],
-    hideRecordingLabel: [ 'recording', 'local-recording' ]
+    hideRecordingLabel: [ 'recording' ]
 };
 
 ReducerRegistry.register('features/base/config', (state = _getInitialState(), action) => {
@@ -340,6 +340,14 @@ function _translateLegacyConfig(oldValue: Object) {
         && typeof interfaceConfig === 'object'
         && interfaceConfig.hasOwnProperty('DEFAULT_REMOTE_DISPLAY_NAME')) {
         newValue.defaultRemoteDisplayName = interfaceConfig.DEFAULT_REMOTE_DISPLAY_NAME;
+    }
+
+    if (oldValue.hideAddRoomButton) {
+        newValue.breakoutRooms = {
+            /* eslint-disable-next-line no-extra-parens */
+            ...(newValue.breakoutRooms || {}),
+            hideAddRoomButton: oldValue.hideAddRoomButton
+        };
     }
 
     newValue.defaultRemoteDisplayName

@@ -5,6 +5,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { isSupported as isAvModerationSupported } from '../../../av-moderation/functions';
 import { Avatar } from '../../../base/avatar';
 import ContextMenu from '../../../base/components/context-menu/ContextMenu';
 import ContextMenuItemGroup from '../../../base/components/context-menu/ContextMenuItemGroup';
@@ -12,8 +13,10 @@ import { isIosMobileBrowser, isMobileBrowser } from '../../../base/environment/u
 import { IconShareVideo } from '../../../base/icons';
 import { MEDIA_TYPE } from '../../../base/media';
 import { getLocalParticipant, PARTICIPANT_ROLE } from '../../../base/participants';
-import { getBreakoutRooms, getCurrentRoomId } from '../../../breakout-rooms/functions';
+import { isParticipantAudioMuted } from '../../../base/tracks';
+import { getBreakoutRooms, getCurrentRoomId, isInBreakoutRoom } from '../../../breakout-rooms/functions';
 import { setVolume } from '../../../filmstrip/actions.web';
+import { isStageFilmstripEnabled } from '../../../filmstrip/functions.web';
 import { isForceMuted } from '../../../participants-pane/functions';
 import { requestRemoteControl, stopController } from '../../../remote-control';
 import { stopSharedVideo } from '../../../shared-video/actions.any';
@@ -33,6 +36,7 @@ import {
     KickButton,
     PrivateMessageMenuButton,
     RemoteControlButton,
+    TogglePinToStageButton,
     VolumeSlider
 } from './';
 
@@ -132,13 +136,17 @@ const ParticipantContextMenu = ({
         isForceMuted(participant, MEDIA_TYPE.AUDIO, state));
     const _isVideoForceMuted = useSelector(state =>
         isForceMuted(participant, MEDIA_TYPE.VIDEO, state));
+    const _isAudioMuted = useSelector(state => isParticipantAudioMuted(participant, state));
     const _overflowDrawer = useSelector(showOverflowDrawer);
     const { remoteVideoMenu = {}, disableRemoteMute, startSilent }
         = useSelector(state => state['features/base/config']);
-    const { disableKick, disableGrantModerator } = remoteVideoMenu;
+    const { disableKick, disableGrantModerator, disablePrivateChat } = remoteVideoMenu;
     const { participantsVolume } = useSelector(state => state['features/filmstrip']);
     const _volume = (participant?.local ?? true ? undefined
-        : participant?.id ? participantsVolume[participant?.id] : undefined) || 1;
+        : participant?.id ? participantsVolume[participant?.id] : undefined) ?? 1;
+    const isBreakoutRoom = useSelector(isInBreakoutRoom);
+    const isModerationSupported = useSelector(isAvModerationSupported());
+    const stageFilmstrip = useSelector(isStageFilmstripEnabled);
 
     const _currentRoomId = useSelector(getCurrentRoomId);
     const _rooms = Object.values(useSelector(getBreakoutRooms));
@@ -178,7 +186,7 @@ const ParticipantContextMenu = ({
     } ];
 
     if (_isModerator) {
-        if (thumbnailMenu || _overflowDrawer) {
+        if ((thumbnailMenu || _overflowDrawer) && isModerationSupported && _isAudioMuted) {
             buttons.push(<AskToUnmuteButton
                 isAudioForceMuted = { _isAudioForceMuted }
                 isVideoForceMuted = { _isVideoForceMuted }
@@ -209,7 +217,7 @@ const ParticipantContextMenu = ({
             );
         }
 
-        if (!disableGrantModerator) {
+        if (!disableGrantModerator && !isBreakoutRoom) {
             buttons2.push(
                 <GrantModeratorButton
                     key = 'grant-moderator'
@@ -226,11 +234,18 @@ const ParticipantContextMenu = ({
         }
     }
 
-    buttons2.push(
-        <PrivateMessageMenuButton
+    if (stageFilmstrip) {
+        buttons2.push(<TogglePinToStageButton
+            key = 'pinToStage'
+            participantID = { _getCurrentParticipantId() } />);
+    }
+
+    if (!disablePrivateChat) {
+        buttons2.push(<PrivateMessageMenuButton
             key = 'privateMessage'
             participantID = { _getCurrentParticipantId() } />
-    );
+        );
+    }
 
     if (thumbnailMenu && isMobileBrowser()) {
         buttons2.push(

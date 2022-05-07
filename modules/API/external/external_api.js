@@ -38,7 +38,7 @@ const commands = {
     displayName: 'display-name',
     e2eeKey: 'e2ee-key',
     email: 'email',
-    toggleLobby: 'toggle-lobby',
+    grantModerator: 'grant-moderator',
     hangup: 'video-hangup',
     initiatePrivateChat: 'initiate-private-chat',
     joinBreakoutRoom: 'join-breakout-room',
@@ -59,6 +59,7 @@ const commands = {
     setLargeVideoParticipant: 'set-large-video-participant',
     setMediaEncryptionKey: 'set-media-encryption-key',
     setParticipantVolume: 'set-participant-volume',
+    setSubtitles: 'set-subtitles',
     setTileView: 'set-tile-view',
     setVideoQuality: 'set-video-quality',
     startRecording: 'start-recording',
@@ -73,11 +74,13 @@ const commands = {
     toggleChat: 'toggle-chat',
     toggleE2EE: 'toggle-e2ee',
     toggleFilmStrip: 'toggle-film-strip',
+    toggleLobby: 'toggle-lobby',
     toggleModeration: 'toggle-moderation',
     toggleParticipantsPane: 'toggle-participants-pane',
     toggleRaiseHand: 'toggle-raise-hand',
     toggleShareAudio: 'toggle-share-audio',
     toggleShareScreen: 'toggle-share-screen',
+    toggleSubtitles: 'toggle-subtitles',
     toggleTileView: 'toggle-tile-view',
     toggleVirtualBackgroundDialog: 'toggle-virtual-background',
     toggleVideo: 'toggle-video'
@@ -101,6 +104,7 @@ const events = {
     'email-change': 'emailChange',
     'error-occurred': 'errorOccurred',
     'endpoint-text-message-received': 'endpointTextMessageReceived',
+    'face-landmark-detected': 'faceLandmarkDetected',
     'feedback-submitted': 'feedbackSubmitted',
     'feedback-prompt-displayed': 'feedbackPromptDisplayed',
     'filmstrip-display-changed': 'filmstripDisplayChanged',
@@ -170,6 +174,7 @@ function changeParticipantNumber(APIInstance, number) {
  * configuration options defined in interface_config.js to be overridden.
  * @param {string} [options.jwt] - The JWT token if needed by jitsi-meet for
  * authentication.
+ * @param {string} [options.lang] - The meeting's default language.
  * @param {string} [options.roomName] - The name of the room to join.
  * @returns {string} The URL.
  */
@@ -208,7 +213,8 @@ function parseArguments(args) {
             configOverwrite,
             interfaceConfigOverwrite,
             jwt,
-            onload
+            onload,
+            lang
         ] = args;
 
         return {
@@ -219,7 +225,8 @@ function parseArguments(args) {
             configOverwrite,
             interfaceConfigOverwrite,
             jwt,
-            onload
+            onload,
+            lang
         };
     }
     case 'object': // new arguments format
@@ -280,6 +287,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * configuration options defined in interface_config.js to be overridden.
      * @param {string} [options.jwt] - The JWT token if needed by jitsi-meet for
      * authentication.
+     * @param {string} [options.lang] - The meeting's default language.
      * @param {string} [options.onload] - The onload function that will listen
      * for iframe onload event.
      * @param {Array<Object>} [options.invitees] - Array of objects containing
@@ -301,6 +309,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
             configOverwrite = {},
             interfaceConfigOverwrite = {},
             jwt = undefined,
+            lang = undefined,
             onload = undefined,
             invitees,
             devices,
@@ -314,6 +323,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
             configOverwrite,
             interfaceConfigOverwrite,
             jwt,
+            lang,
             roomName,
             devices,
             userInfo,
@@ -918,6 +928,18 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
+     * Returns the audio disabled status.
+     *
+     * @returns {Promise} - Resolves with the audio disabled status and rejects on
+     * failure.
+     */
+    isAudioDisabled() {
+        return this._transport.sendRequest({
+            name: 'is-audio-disabled'
+        });
+    }
+
+    /**
      * Returns the moderation on status on the given mediaType.
      *
      * @param {string} mediaType - The media type for which to check moderation.
@@ -967,6 +989,17 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     isSharingScreen() {
         return this._transport.sendRequest({
             name: 'is-sharing-screen'
+        });
+    }
+
+    /**
+     * Returns wether meeting is started silent.
+     *
+     * @returns {Promise} - Resolves with start silent status.
+     */
+    isStartSilent() {
+        return this._transport.sendRequest({
+            name: 'is-start-silent'
         });
     }
 

@@ -48,7 +48,9 @@ import {
     participantRejected
 } from './actions';
 import {
-    ASKED_TO_UNMUTE_SOUND_ID, AUDIO_MODERATION_NOTIFICATION_ID,
+    ASKED_TO_UNMUTE_NOTIFICATION_ID,
+    ASKED_TO_UNMUTE_SOUND_ID,
+    AUDIO_MODERATION_NOTIFICATION_ID,
     CS_MODERATION_NOTIFICATION_ID,
     VIDEO_MODERATION_NOTIFICATION_ID
 } from './constants';
@@ -107,7 +109,7 @@ MiddlewareRegistry.register(({ dispatch, getState }) => next => action => {
             sticky: true,
             titleKey,
             uid
-        }, NOTIFICATION_TIMEOUT_TYPE.STICKY));
+        }, NOTIFICATION_TIMEOUT_TYPE.MEDIUM));
 
         break;
     }
@@ -222,8 +224,9 @@ StateListenerRegistry.register(
                         titleKey: 'notify.hostAskedUnmute',
                         sticky: true,
                         customActionNameKey: [ 'notify.unmute' ],
-                        customActionHandler: [ () => dispatch(muteLocal(false, MEDIA_TYPE.AUDIO)) ]
-                    }, NOTIFICATION_TIMEOUT_TYPE.STICKY));
+                        customActionHandler: [ () => dispatch(muteLocal(false, MEDIA_TYPE.AUDIO)) ],
+                        uid: ASKED_TO_UNMUTE_NOTIFICATION_ID
+                    }, NOTIFICATION_TIMEOUT_TYPE.MEDIUM));
                     dispatch(playSound(ASKED_TO_UNMUTE_SOUND_ID));
                 }
             });

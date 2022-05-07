@@ -641,18 +641,20 @@ export function createSharedVideoEvent(action, attributes = {}) {
  * of ACTION_SHORTCUT_PRESSED, ACTION_SHORTCUT_RELEASED
  * or ACTION_SHORTCUT_TRIGGERED).
  * @param {Object} attributes - Attributes to attach to the event.
+ * @param {string} source - The event's source.
  * @returns {Object} The event in a format suitable for sending via
  * sendAnalytics.
  */
 export function createShortcutEvent(
         shortcut,
         action = ACTION_SHORTCUT_TRIGGERED,
-        attributes = {}) {
+        attributes = {},
+        source = 'keyboard.shortcut') {
     return {
         action,
         actionSubjectId: shortcut,
         attributes,
-        source: 'keyboard.shortcut',
+        source,
         type: TYPE_UI
     };
 }
@@ -897,5 +899,17 @@ export function createBreakoutRoomsEvent(actionSubject) {
         action: 'clicked',
         actionSubject: `${actionSubject}.button`,
         source: 'breakout.rooms'
+    };
+}
+
+/**
+ * Creates an event which indicates a GIF was sent.
+ *
+ * @returns {Object} The event in a format suitable for sending via
+ * sendAnalytics.
+ */
+export function createGifSentEvent() {
+    return {
+        action: 'gif.sent'
     };
 }
