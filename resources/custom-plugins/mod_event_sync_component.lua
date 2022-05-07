@@ -247,6 +247,8 @@ function room_created(event)
             ['serverId'] = SERVER_ID;
         });
     })
+--- Enable lobby by default
+    prosody.events.fire_event("create-lobby-room",event);
 end
 
 --- Callback when room destroyed

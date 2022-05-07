@@ -364,7 +364,48 @@ process_host_module(main_muc_component_config, function(host_module, host)
         if password and room:get_password() and password == room:get_password() then
             whitelistJoin = true;
         end
+        -- START : Added by Ankit to allow moderators to join lobby without knocking
+        local basexx = require "basexx";
 
+        -- Check if a JWT token is provided
+        if event.origin.auth_token then
+            -- Decode the JWT token
+            local dotFirst = event.origin.auth_token:find("%.");
+            if dotFirst then
+                local dotSecond = event.origin.auth_token:sub(dotFirst + 1):find("%.");
+                if dotSecond then
+                    local bodyB64 = event.origin.auth_token:sub(dotFirst + 1, dotFirst + dotSecond - 1);
+                    local body = json.decode(basexx.from_url64(bodyB64));
+        
+                    module:log('debug', 'Valid JWT token found, checking indicators');
+        
+                    -- Get the token attributes for affiliation/moderator status
+                    local modModeration = body['moderator'];
+                    local modAffiliation = body['context']['user']['affiliation'];
+                    local modAnonymous = body['context']['user']['anonymous'];
+                    -- Whitelist the auto-reentry for moderators/owners/teachers
+                    if modModeration and modModeration == true then
+                        module:log('debug', 'User is moderator according to token_moderation, permitting entry');
+                        whitelistJoin = true;
+                    elseif modAffiliation and (modAffiliation == 'owner' or modAffiliation == 'moderator' or modAffiliation == 'teacher') then
+                        module:log('debug', 'User is moderator according to token_affiliation, permitting entry');
+                        whitelistJoin = true;
+                    else
+                        module:log('debug', 'No valid affiliations for direct entry found in JWT');
+                        -- Whitelist everyone from lobby
+                        -- Maybe later, only whitelist people from same org
+                        whitelistJoin = true;
+                    end
+
+                    -- Don't whitelist anonymous users
+                    if modAnonymous and modAnonymous == true then
+                        whitelistJoin = false;
+                    end
+                end
+            end
+        end
+
+        -- END
         if whitelistJoin then
             local affiliation = room:get_affiliation(invitee);
             if not affiliation or affiliation == 0 then
