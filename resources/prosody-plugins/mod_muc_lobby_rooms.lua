@@ -402,7 +402,7 @@ process_host_module(main_muc_component_config, function(host_module, host)
                     -- Get the token attributes for affiliation/moderator status
                     local modModeration = body['moderator'];
                     local modAffiliation = body['context']['user']['affiliation'];
-                    local modAnonymous = body['context']['user']['anonymous'];
+                    local modLobby = body['context']['lobby'];
                     -- Whitelist the auto-reentry for moderators/owners/teachers
                     if modModeration and modModeration == true then
                         module:log('debug', 'User is moderator according to token_moderation, permitting entry');
@@ -417,8 +417,8 @@ process_host_module(main_muc_component_config, function(host_module, host)
                         whitelistJoin = true;
                     end
 
-                    -- Don't whitelist anonymous users
-                    if modAnonymous and modAnonymous == true then
+                    -- Enable lobby according to token
+                    if modLobby and modLobby == true then
                         whitelistJoin = false;
                     end
                 end
